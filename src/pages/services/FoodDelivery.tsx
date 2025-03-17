@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -9,7 +8,7 @@ import AIRecommendations from "@/components/ai/AIRecommendations";
 import AIChat from "@/components/ai/AIChat";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Utensils, Info, Star as StarIcon, Clock, MapPin, PercentIcon } from "lucide-react";
+import { Utensils, Info, Star, Clock, MapPin, PercentIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ServiceProvider } from "@/components/services/ServiceComparison";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -38,7 +37,6 @@ const FoodDelivery = () => {
       setSearchResults(state.searchResults);
       processSearchResults(state.searchResults);
     } else {
-      // Get user location if not already provided
       if (!locationData && navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -98,7 +96,6 @@ const FoodDelivery = () => {
     setLoading(true);
     
     try {
-      // Extract food item and priorities if available
       const foodItem = results?.extracted?.item || "food";
       const priorities = results?.extracted?.priorities || [];
       const hasPrioritySpeed = priorities.some((p: string) => 
@@ -108,7 +105,6 @@ const FoodDelivery = () => {
         p.toLowerCase().includes("cheap") || p.toLowerCase().includes("affordable") || p.toLowerCase().includes("price")
       );
       
-      // Create base providers with defaults
       let newProviders: ServiceProvider[] = [
         {
           id: "swiggy",
@@ -145,37 +141,30 @@ const FoodDelivery = () => {
         },
       ];
       
-      // If we have geolocation, adjust ETAs based on distance
       if (locationData) {
-        // Simulate location-based ETA calculations 
-        // In a real app, this would call a distance/routing API
-        newProviders[0].eta = "25-30 min"; // Swiggy 
-        newProviders[1].eta = "35-40 min"; // Zomato
-        newProviders[2].eta = "20-25 min"; // EatSure
+        newProviders[0].eta = "25-30 min";
+        newProviders[1].eta = "35-40 min";
+        newProviders[2].eta = "20-25 min";
       }
       
-      // Sort providers based on priorities
       if (hasPrioritySpeed && hasPriorityPrice) {
-        // Sort by balanced speed and price
         newProviders.sort((a, b) => {
           const aEta = parseInt(a.eta?.split('-')[0] || '30');
           const bEta = parseInt(b.eta?.split('-')[0] || '30');
-          const aPrice = parseInt(a.price?.replace(/[^\d]/g, '') || '150');
-          const bPrice = parseInt(b.price?.replace(/[^\d]/g, '') || '150');
+          const aPrice = a.price ? parseInt(String(a.price).replace(/[^\d]/g, '') || '150') : 150;
+          const bPrice = b.price ? parseInt(String(b.price).replace(/[^\d]/g, '') || '150') : 150;
           return (aEta + aPrice/100) - (bEta + bPrice/100);
         });
       } else if (hasPrioritySpeed) {
-        // Sort by fastest delivery
         newProviders.sort((a, b) => {
           const aEta = parseInt(a.eta?.split('-')[0] || '30');
           const bEta = parseInt(b.eta?.split('-')[0] || '30');
           return aEta - bEta;
         });
       } else if (hasPriorityPrice) {
-        // Sort by lowest price
         newProviders.sort((a, b) => {
-          const aPrice = parseInt(a.price?.replace(/[^\d]/g, '') || '150');
-          const bPrice = parseInt(b.price?.replace(/[^\d]/g, '') || '150');
+          const aPrice = a.price ? parseInt(String(a.price).replace(/[^\d]/g, '') || '150') : 150;
+          const bPrice = b.price ? parseInt(String(b.price).replace(/[^\d]/g, '') || '150') : 150;
           return aPrice - bPrice;
         });
       }
@@ -314,7 +303,7 @@ const FoodDelivery = () => {
                             <span>{restaurant.cuisine}</span>
                             <div className="flex items-center">
                               <span className="flex items-center mr-2">
-                                <StarIcon className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 mr-1" />
+                                <Star className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 mr-1" />
                                 {restaurant.rating}
                               </span>
                               <span className="flex items-center">

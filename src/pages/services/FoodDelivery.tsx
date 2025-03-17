@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -9,7 +8,7 @@ import AIRecommendations from "@/components/ai/AIRecommendations";
 import AIChat from "@/components/ai/AIChat";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Utensils, Info } from "lucide-react";
+import { Utensils, Info, Star as StarIcon, Clock } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ServiceProvider } from "@/components/services/ServiceComparison";
 
@@ -23,12 +22,10 @@ const FoodDelivery = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
     
-    // Check if we have search results from navigation
     if (state?.searchResults) {
       setSearchResults(state.searchResults);
       processSearchResults(state.searchResults);
     } else {
-      // Set default providers
       setProviders([
         {
           id: "swiggy",
@@ -71,9 +68,6 @@ const FoodDelivery = () => {
     setLoading(true);
     
     try {
-      // In a real app, this would use the actual search results to get provider data
-      // For now, we'll simulate this with mock data based on the search
-      
       const newProviders: ServiceProvider[] = [
         {
           id: "swiggy",

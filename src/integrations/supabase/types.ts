@@ -9,7 +9,153 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          amount: number | null
+          booking_details: Json
+          created_at: string
+          id: string
+          provider: string
+          service_type: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          booking_details: Json
+          created_at?: string
+          id?: string
+          provider: string
+          service_type: string
+          status: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          booking_details?: Json
+          created_at?: string
+          id?: string
+          provider?: string
+          service_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      search_history: {
+        Row: {
+          id: string
+          query: string
+          service_type: string
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          id?: string
+          query: string
+          service_type: string
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          id?: string
+          query?: string
+          service_type?: string
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      service_apis: {
+        Row: {
+          api_type: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          service_name: string
+        }
+        Insert: {
+          api_type: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          service_name: string
+        }
+        Update: {
+          api_type?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          service_name?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          favorite_restaurants: string[] | null
+          frequent_locations: string[] | null
+          id: string
+          preferred_hotel_chains: string[] | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          favorite_restaurants?: string[] | null
+          frequent_locations?: string[] | null
+          id?: string
+          preferred_hotel_chains?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          favorite_restaurants?: string[] | null
+          frequent_locations?: string[] | null
+          id?: string
+          preferred_hotel_chains?: string[] | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_profiles: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

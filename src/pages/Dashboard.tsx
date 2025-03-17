@@ -1,6 +1,7 @@
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { 
@@ -14,14 +15,84 @@ import {
   Bell,
   Star,
   Clock,
-  ArrowRight
+  ArrowRight,
+  Search,
+  Sparkles
 } from "lucide-react";
 import ServiceCard from "@/components/ui/ServiceCard";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import GeminiSearchBar from "@/components/search/GeminiSearchBar";
+import AIRecommendations from "@/components/ai/AIRecommendations";
+import AIChat from "@/components/ai/AIChat";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
+  const { user } = useAuth();
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [searchHistory, setSearchHistory] = useState<any[]>([]);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, []);
+    fetchUserData();
+  }, [user]);
+
+  const fetchUserData = async () => {
+    if (!user) return;
+
+    try {
+      setLoading(true);
+
+      // Fetch user profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      setUserProfile(profileData);
+
+      // Fetch search history
+      const { data: historyData, error: historyError } = await supabase
+        .from('search_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('timestamp', { ascending: false })
+        .limit(5);
+
+      if (historyError) {
+        throw historyError;
+      }
+
+      setSearchHistory(historyData || []);
+
+      // Fetch bookings
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from('bookings')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (bookingsError) {
+        throw bookingsError;
+      }
+
+      setBookings(bookingsData || []);
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      toast.error("Failed to load user data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const services = [
     {
@@ -66,52 +137,106 @@ const Dashboard = () => {
     },
   ];
 
-  const recentBookings = [
-    {
-      id: 1,
-      service: "Food Delivery",
-      vendor: "Tasty Treats",
-      date: "Today, 2:30 PM",
-      status: "On the way",
-      icon: <Utensils size={16} />,
-      color: "bg-orange-500",
-    },
-    {
-      id: 2,
-      service: "Cab Booking",
-      vendor: "City Cabs",
-      date: "Yesterday, 10:15 AM",
-      status: "Completed",
-      icon: <Car size={16} />,
-      color: "bg-violet-500",
-    },
-    {
-      id: 3,
-      service: "Hotel Reservation",
-      vendor: "Grand Plaza",
-      date: "June 15-18, 2023",
-      status: "Upcoming",
-      icon: <Hotel size={16} />,
-      color: "bg-green-500",
-    },
-  ];
+  const recentBookings = bookings.length > 0 
+    ? bookings.map(booking => ({
+        id: booking.id,
+        service: booking.service_type,
+        vendor: booking.provider,
+        date: new Date(booking.created_at).toLocaleDateString(),
+        status: booking.status,
+        icon: getServiceIcon(booking.service_type),
+        color: getServiceColor(booking.service_type),
+      }))
+    : [
+        {
+          id: 1,
+          service: "Food Delivery",
+          vendor: "Swiggy",
+          date: "Today, 2:30 PM",
+          status: "On the way",
+          icon: <Utensils size={16} />,
+          color: "bg-orange-500",
+        },
+        {
+          id: 2,
+          service: "Cab Booking",
+          vendor: "Uber",
+          date: "Yesterday, 10:15 AM",
+          status: "Completed",
+          icon: <Car size={16} />,
+          color: "bg-violet-500",
+        },
+        {
+          id: 3,
+          service: "Hotel Reservation",
+          vendor: "Booking.com",
+          date: "June 15-18, 2023",
+          status: "Upcoming",
+          icon: <Hotel size={16} />,
+          color: "bg-green-500",
+        },
+      ];
 
   const offers = [
     {
       id: 1,
       title: "50% OFF on First Ride",
       code: "NEWRIDE50",
-      validity: "Valid till June 30, 2023",
+      validity: "Valid till Aug 31, 2023",
       color: "bg-gradient-to-r from-violet-500 to-purple-600",
     },
     {
       id: 2,
       title: "Free Delivery on Food Orders",
       code: "FREEFOOD",
-      validity: "Valid till July 5, 2023",
+      validity: "Valid till Sep 5, 2023",
       color: "bg-gradient-to-r from-orange-500 to-red-500",
     },
   ];
+
+  function getServiceIcon(serviceType: string) {
+    switch (serviceType?.toLowerCase()) {
+      case 'food delivery':
+      case 'food-delivery':
+        return <Utensils size={16} />;
+      case 'cab booking':
+      case 'cab-booking':
+        return <Car size={16} />;
+      case 'hotel reservation':
+      case 'hotel-reservation':
+        return <Hotel size={16} />;
+      case 'fuel delivery':
+      case 'fuel-delivery':
+        return <Fuel size={16} />;
+      case 'train booking':
+      case 'train-booking':
+        return <Train size={16} />;
+      default:
+        return <Search size={16} />;
+    }
+  }
+
+  function getServiceColor(serviceType: string) {
+    switch (serviceType?.toLowerCase()) {
+      case 'food delivery':
+      case 'food-delivery':
+        return 'bg-orange-500';
+      case 'cab booking':
+      case 'cab-booking':
+        return 'bg-violet-500';
+      case 'hotel reservation':
+      case 'hotel-reservation':
+        return 'bg-green-500';
+      case 'fuel delivery':
+      case 'fuel-delivery':
+        return 'bg-blue-500';
+      case 'train booking':
+      case 'train-booking':
+        return 'bg-pink-500';
+      default:
+        return 'bg-gray-500';
+    }
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -120,8 +245,24 @@ const Dashboard = () => {
       <main className="flex-grow bg-gray-50 pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-6">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Welcome Back!</h1>
+            <h1 className="text-3xl font-bold mb-2">Welcome, {userProfile?.first_name || "User"}!</h1>
             <p className="text-gray-600">Manage all your services from your personal dashboard</p>
+          </div>
+          
+          <div className="mb-8">
+            <div className="p-6 bg-gradient-to-r from-orange-500 via-violet-500 to-green-500 rounded-2xl text-white">
+              <div className="flex flex-col md:flex-row justify-between items-center">
+                <div className="mb-4 md:mb-0">
+                  <h2 className="text-2xl font-bold mb-2">Gemini AI Search</h2>
+                  <p className="opacity-90">Find exactly what you need across all services with AI-powered search</p>
+                </div>
+                <GeminiSearchBar 
+                  serviceType="general" 
+                  placeholder="Search with Gemini AI..."
+                  className="w-full md:w-96 bg-white/10 backdrop-blur-sm"
+                />
+              </div>
+            </div>
           </div>
           
           {/* Quick Stats */}
@@ -133,10 +274,10 @@ const Dashboard = () => {
                 </div>
                 <h3 className="font-semibold">Your Wallet</h3>
               </div>
-              <p className="text-2xl font-bold mb-1">$249.50</p>
+              <p className="text-2xl font-bold mb-1">₹249.50</p>
               <p className="text-gray-500 text-sm">Available balance</p>
               <div className="mt-4">
-                <Link to="/wallet" className="text-orange-500 text-sm font-medium flex items-center">
+                <Link to="#" className="text-orange-500 text-sm font-medium flex items-center">
                   Add Money
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -153,7 +294,7 @@ const Dashboard = () => {
               <p className="text-2xl font-bold mb-1">750 points</p>
               <p className="text-gray-500 text-sm">Current reward points</p>
               <div className="mt-4">
-                <Link to="/rewards" className="text-violet-500 text-sm font-medium flex items-center">
+                <Link to="#" className="text-violet-500 text-sm font-medium flex items-center">
                   Redeem Points
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -170,7 +311,7 @@ const Dashboard = () => {
               <p className="text-2xl font-bold mb-1">3 new</p>
               <p className="text-gray-500 text-sm">Unread notifications</p>
               <div className="mt-4">
-                <Link to="/notifications" className="text-green-500 text-sm font-medium flex items-center">
+                <Link to="#" className="text-green-500 text-sm font-medium flex items-center">
                   View All
                   <ArrowRight className="ml-1 h-4 w-4" />
                 </Link>
@@ -178,18 +319,47 @@ const Dashboard = () => {
             </div>
           </div>
           
+          {/* AI Chat Assistant */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold flex items-center">
+                <Sparkles className="h-6 w-6 mr-2 text-violet-500" />
+                AI Assistant
+              </h2>
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="outline">Open Full Chat</Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl h-[80vh]">
+                  <DialogHeader>
+                    <DialogTitle>AI Assistant</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex-1 overflow-hidden h-full">
+                    <AIChat serviceType="general" className="h-full" />
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+              <AIChat 
+                serviceType="general" 
+                title="How can I help you today?"
+              />
+            </div>
+          </div>
+          
           {/* Services */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Services</h2>
-              <Link to="/services" className="text-orange-500 font-medium flex items-center">
+              <Link to="#" className="text-orange-500 font-medium flex items-center">
                 View All
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.slice(0, 3).map((service) => (
+              {services.map((service) => (
                 <ServiceCard
                   key={service.id}
                   title={service.title}
@@ -202,13 +372,40 @@ const Dashboard = () => {
             </div>
           </div>
           
+          {/* Personalized Recommendations */}
+          <div className="mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold flex items-center">
+                <Sparkles className="h-6 w-6 mr-2 text-orange-500" />
+                Personalized For You
+              </h2>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <AIRecommendations
+                type="restaurants"
+                title="Recommended Restaurants"
+              />
+              
+              <AIRecommendations
+                type="hotels"
+                title="Hotel Suggestions"
+              />
+              
+              <AIRecommendations
+                type="cabs"
+                title="Popular Routes"
+              />
+            </div>
+          </div>
+          
           {/* Recent Bookings & Offers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-bold">Recent Bookings</h2>
-                  <Link to="/bookings" className="text-orange-500 text-sm font-medium flex items-center">
+                  <h2 className="text-xl font-bold">Recent Activity</h2>
+                  <Link to="#" className="text-orange-500 text-sm font-medium flex items-center">
                     View All
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
@@ -235,6 +432,29 @@ const Dashboard = () => {
                       </div>
                     </div>
                   ))}
+                  
+                  {/* Recent searches section */}
+                  <h3 className="font-medium mt-6 mb-3">Recent Searches</h3>
+                  {searchHistory.length > 0 ? (
+                    searchHistory.slice(0, 3).map((search, index) => (
+                      <div key={index} className="flex items-center p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <div className={`w-10 h-10 rounded-lg ${getServiceColor(search.service_type)} flex items-center justify-center text-white mr-4`}>
+                          {getServiceIcon(search.service_type)}
+                        </div>
+                        <div className="flex-grow">
+                          <p className="font-medium">{search.query}</p>
+                          <div className="flex items-center mt-1 text-xs text-gray-500">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(search.timestamp).toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-4 text-gray-500">
+                      No search history yet
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -243,7 +463,7 @@ const Dashboard = () => {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold">Special Offers</h2>
-                  <Link to="/offers" className="text-orange-500 text-sm font-medium flex items-center">
+                  <Link to="#" className="text-orange-500 text-sm font-medium flex items-center">
                     View All
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </Link>
@@ -273,7 +493,10 @@ const Dashboard = () => {
                     <p className="text-sm text-gray-600 mb-3">
                       Help us improve by sharing your feedback!
                     </p>
-                    <button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium py-2 px-4 rounded-lg transition-colors">
+                    <button 
+                      className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 text-sm font-medium py-2 px-4 rounded-lg transition-colors"
+                      onClick={() => toast.info("Feedback form would open here")}
+                    >
                       Leave Feedback
                     </button>
                   </div>

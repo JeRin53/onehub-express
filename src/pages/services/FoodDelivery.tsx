@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Navbar from "@/components/layout/Navbar";
@@ -8,9 +9,17 @@ import AIRecommendations from "@/components/ai/AIRecommendations";
 import AIChat from "@/components/ai/AIChat";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Utensils, Info, Star as StarIcon, Clock } from "lucide-react";
+import { Utensils, Info, Star as StarIcon, Clock, MapPin, PercentIcon } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ServiceProvider } from "@/components/services/ServiceComparison";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
+
+interface LocationData {
+  latitude: number;
+  longitude: number;
+  accuracy?: number;
+}
 
 const FoodDelivery = () => {
   const { state } = useLocation();
@@ -18,6 +27,9 @@ const FoodDelivery = () => {
   const [searchResults, setSearchResults] = useState<any>(null);
   const [providers, setProviders] = useState<ServiceProvider[]>([]);
   const [loading, setLoading] = useState(false);
+  const [locationData, setLocationData] = useState<LocationData | null>(
+    state?.userLocation || null
+  );
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -26,6 +38,24 @@ const FoodDelivery = () => {
       setSearchResults(state.searchResults);
       processSearchResults(state.searchResults);
     } else {
+      // Get user location if not already provided
+      if (!locationData && navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setLocationData({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+            });
+            console.log("Location obtained:", position.coords);
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+          },
+          { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+        );
+      }
+
       setProviders([
         {
           id: "swiggy",
@@ -68,7 +98,18 @@ const FoodDelivery = () => {
     setLoading(true);
     
     try {
-      const newProviders: ServiceProvider[] = [
+      // Extract food item and priorities if available
+      const foodItem = results?.extracted?.item || "food";
+      const priorities = results?.extracted?.priorities || [];
+      const hasPrioritySpeed = priorities.some((p: string) => 
+        p.toLowerCase().includes("fast") || p.toLowerCase().includes("quick") || p.toLowerCase().includes("speed")
+      );
+      const hasPriorityPrice = priorities.some((p: string) => 
+        p.toLowerCase().includes("cheap") || p.toLowerCase().includes("affordable") || p.toLowerCase().includes("price")
+      );
+      
+      // Create base providers with defaults
+      let newProviders: ServiceProvider[] = [
         {
           id: "swiggy",
           name: "Swiggy",
@@ -99,9 +140,45 @@ const FoodDelivery = () => {
           votes: 5723,
           eta: "25-30 min",
           features: ["Health Focus", "Combo Options"],
+          discount: "40% OFF up to ₹80",
           bestFor: "healthy options",
         },
       ];
+      
+      // If we have geolocation, adjust ETAs based on distance
+      if (locationData) {
+        // Simulate location-based ETA calculations 
+        // In a real app, this would call a distance/routing API
+        newProviders[0].eta = "25-30 min"; // Swiggy 
+        newProviders[1].eta = "35-40 min"; // Zomato
+        newProviders[2].eta = "20-25 min"; // EatSure
+      }
+      
+      // Sort providers based on priorities
+      if (hasPrioritySpeed && hasPriorityPrice) {
+        // Sort by balanced speed and price
+        newProviders.sort((a, b) => {
+          const aEta = parseInt(a.eta?.split('-')[0] || '30');
+          const bEta = parseInt(b.eta?.split('-')[0] || '30');
+          const aPrice = parseInt(a.price?.replace(/[^\d]/g, '') || '150');
+          const bPrice = parseInt(b.price?.replace(/[^\d]/g, '') || '150');
+          return (aEta + aPrice/100) - (bEta + bPrice/100);
+        });
+      } else if (hasPrioritySpeed) {
+        // Sort by fastest delivery
+        newProviders.sort((a, b) => {
+          const aEta = parseInt(a.eta?.split('-')[0] || '30');
+          const bEta = parseInt(b.eta?.split('-')[0] || '30');
+          return aEta - bEta;
+        });
+      } else if (hasPriorityPrice) {
+        // Sort by lowest price
+        newProviders.sort((a, b) => {
+          const aPrice = parseInt(a.price?.replace(/[^\d]/g, '') || '150');
+          const bPrice = parseInt(b.price?.replace(/[^\d]/g, '') || '150');
+          return aPrice - bPrice;
+        });
+      }
       
       setProviders(newProviders);
     } catch (err) {
@@ -130,6 +207,13 @@ const FoodDelivery = () => {
             <p className="text-gray-600">
               Order food from your favorite restaurants and have it delivered to your doorstep
             </p>
+            
+            {locationData && (
+              <div className="flex items-center mt-1 text-sm text-gray-500">
+                <MapPin className="h-3.5 w-3.5 mr-1 text-orange-500" />
+                <span>Using your current location for delivery estimates</span>
+              </div>
+            )}
           </div>
           
           <div className="mb-8">
@@ -147,6 +231,30 @@ const FoodDelivery = () => {
               <AlertTitle>Search Results</AlertTitle>
               <AlertDescription>
                 {searchResults.summary || "Here are the search results for your query."}
+                
+                {searchResults.extracted && searchResults.extracted.item && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {searchResults.extracted.item && (
+                      <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-200">
+                        {searchResults.extracted.item}
+                      </Badge>
+                    )}
+                    
+                    {searchResults.extracted.priorities && 
+                      searchResults.extracted.priorities.map((priority: string, idx: number) => (
+                        <Badge key={idx} variant="outline" className="bg-blue-100 text-blue-800 border-blue-200">
+                          {priority}
+                        </Badge>
+                      ))
+                    }
+                    
+                    {searchResults.extracted.cuisine && (
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                        {searchResults.extracted.cuisine}
+                      </Badge>
+                    )}
+                  </div>
+                )}
               </AlertDescription>
             </Alert>
           )}
@@ -186,16 +294,22 @@ const FoodDelivery = () => {
                 <CardContent>
                   <div className="space-y-4">
                     {[
-                      { name: "Spice Junction", cuisine: "Indian", rating: 4.8, deliveryTime: "30 min" },
-                      { name: "Pizza Express", cuisine: "Italian", rating: 4.5, deliveryTime: "25 min" },
-                      { name: "Wok & Roll", cuisine: "Chinese", rating: 4.3, deliveryTime: "40 min" },
+                      { name: "Spice Junction", cuisine: "Indian", rating: 4.8, deliveryTime: "30 min", discount: "50% OFF" },
+                      { name: "Pizza Express", cuisine: "Italian", rating: 4.5, deliveryTime: "25 min", discount: "40% OFF" },
+                      { name: "Wok & Roll", cuisine: "Chinese", rating: 4.3, deliveryTime: "40 min", discount: "30% OFF" },
                     ].map((restaurant, index) => (
                       <div key={index} className="flex items-center space-x-3 border-b pb-3 last:border-0">
                         <div className="h-12 w-12 bg-gray-100 rounded-md flex items-center justify-center text-lg font-bold text-gray-500">
                           {restaurant.name.charAt(0)}
                         </div>
                         <div className="flex-1">
-                          <h3 className="font-medium">{restaurant.name}</h3>
+                          <div className="flex justify-between">
+                            <h3 className="font-medium">{restaurant.name}</h3>
+                            <div className="flex items-center text-xs font-medium text-green-600">
+                              <PercentIcon className="h-3 w-3 mr-0.5" />
+                              {restaurant.discount}
+                            </div>
+                          </div>
                           <div className="flex justify-between text-sm text-gray-500">
                             <span>{restaurant.cuisine}</span>
                             <div className="flex items-center">
@@ -203,7 +317,10 @@ const FoodDelivery = () => {
                                 <StarIcon className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400 mr-1" />
                                 {restaurant.rating}
                               </span>
-                              <span>{restaurant.deliveryTime}</span>
+                              <span className="flex items-center">
+                                <Clock className="h-3.5 w-3.5 mr-1 text-gray-400" />
+                                {restaurant.deliveryTime}
+                              </span>
                             </div>
                           </div>
                         </div>

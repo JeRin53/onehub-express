@@ -17,7 +17,15 @@ import HotelReservation from "./pages/services/HotelReservation";
 import FuelDelivery from "./pages/services/FuelDelivery";
 import TrainBooking from "./pages/services/TrainBooking";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -30,6 +38,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/about" element={<Index />} /> {/* Redirect to homepage with about section */}
+            <Route path="/services" element={<Navigate to="/#services" replace />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={

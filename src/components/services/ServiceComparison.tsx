@@ -4,7 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { StarIcon, Clock, ArrowRight, ThumbsUp } from "lucide-react";
+import { StarIcon, Clock, ArrowRight, ThumbsUp, Percent, MapPin } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
 export type ServiceProvider = {
@@ -19,6 +20,7 @@ export type ServiceProvider = {
   discount?: string;
   bestFor?: string;
   redirectUrl?: string;
+  distance?: string;
 };
 
 interface ServiceComparisonProps {
@@ -64,13 +66,30 @@ const ServiceComparison: React.FC<ServiceComparisonProps> = ({
     return (
       <Card className={className}>
         <CardHeader>
-          <CardTitle className="animate-pulse bg-gray-200 h-6 w-2/3 rounded"></CardTitle>
-          <CardDescription className="animate-pulse bg-gray-200 h-4 w-1/2 rounded mt-2"></CardDescription>
+          <Skeleton className="h-7 w-2/3 mb-2" />
+          <Skeleton className="h-4 w-1/2" />
         </CardHeader>
         <CardContent>
-          <div className="animate-pulse space-y-4">
-            <div className="h-10 bg-gray-200 rounded"></div>
-            <div className="h-40 bg-gray-200 rounded"></div>
+          <div className="space-y-5">
+            <Skeleton className="h-10 w-full" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <Skeleton className="h-12 w-12 rounded" />
+                  <div>
+                    <Skeleton className="h-5 w-24 mb-1" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
+                </div>
+                <Skeleton className="h-6 w-20" />
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-16 w-full" />
+              </div>
+              <Skeleton className="h-10 w-full" />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -135,7 +154,8 @@ const ServiceComparison: React.FC<ServiceComparisonProps> = ({
                   </div>
 
                   {provider.discount && (
-                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+                    <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 flex items-center">
+                      <Percent className="h-3 w-3 mr-1" />
                       {provider.discount}
                     </Badge>
                   )}
@@ -179,6 +199,16 @@ const ServiceComparison: React.FC<ServiceComparisonProps> = ({
                       </div>
                     </div>
                   )}
+                  
+                  {provider.distance && (
+                    <div className="flex flex-col">
+                      <span className="text-sm text-gray-500 mb-1">Distance</span>
+                      <div className="flex items-center">
+                        <MapPin className="h-4 w-4 mr-1 text-gray-400" />
+                        <span className="font-semibold">{provider.distance}</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {provider.features && provider.features.length > 0 && (
@@ -195,7 +225,7 @@ const ServiceComparison: React.FC<ServiceComparisonProps> = ({
                 )}
 
                 <Button 
-                  className="w-full" 
+                  className="w-full bg-gradient-to-r from-orange-500 via-violet-500 to-green-500 hover:from-orange-600 hover:via-violet-600 hover:to-green-600 text-white" 
                   onClick={() => handleRedirect(provider)}
                 >
                   Continue with {provider.name}

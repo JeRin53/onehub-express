@@ -16,6 +16,8 @@ import CabBooking from "./pages/services/CabBooking";
 import HotelReservation from "./pages/services/HotelReservation";
 import FuelDelivery from "./pages/services/FuelDelivery";
 import TrainBooking from "./pages/services/TrainBooking";
+import About from "./pages/About";
+import Services from "./pages/Services";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,8 +40,8 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/about" element={<Index />} /> {/* Redirect to homepage with about section */}
-            <Route path="/services" element={<Navigate to="/#services" replace />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={

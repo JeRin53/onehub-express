@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { LocationData } from "./use-search";
+import { toast } from "sonner";
 
 export const useLocation = () => {
   const [locationData, setLocationData] = useState<LocationData | null>(null);
@@ -12,21 +13,23 @@ export const useLocation = () => {
       setLocationLoading(true);
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setLocationData({
+          const locationInfo = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
-          });
+          };
+          setLocationData(locationInfo);
           setLocationEnabled(true);
           setLocationLoading(false);
-          console.log("Location obtained:", position.coords);
+          console.log("Location obtained:", locationInfo);
         },
         (error) => {
           console.error("Error getting location:", error);
           setLocationEnabled(false);
           setLocationLoading(false);
+          toast.error("Could not get your location. Some features may be limited.");
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 60000 }
+        { enableHighAccuracy: true, timeout: 7000, maximumAge: 60000 }
       );
     }
   }, []);

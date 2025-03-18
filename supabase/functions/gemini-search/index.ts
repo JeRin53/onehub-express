@@ -16,7 +16,11 @@ serve(async (req) => {
   }
 
   try {
-    const { query, serviceType, location } = await req.json();
+    const requestData = await req.json();
+    const { query, serviceType, location } = requestData;
+    
+    console.log(`Processing Gemini search for: "${query}" in service: ${serviceType}`);
+    console.log(`User location data: ${location ? `Lat: ${location.latitude}, Lng: ${location.longitude}` : 'Not provided'}`);
 
     if (!query) {
       return new Response(
@@ -29,9 +33,6 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    console.log(`Processing Gemini search for: "${query}" in service: ${serviceType}`);
-    console.log(`User location data: ${location ? `Lat: ${location.latitude}, Lng: ${location.longitude}` : 'Not provided'}`);
 
     // Check if we have a valid API key
     if (!GEMINI_API_KEY) {
@@ -157,6 +158,8 @@ serve(async (req) => {
                           
         const jsonString = jsonMatch ? jsonMatch[0].replace(/```json|```/g, '') : textResponse;
         parsedResponse = JSON.parse(jsonString.replace(/\n/g, ''));
+        
+        console.log("Successfully parsed Gemini response");
       } catch (e) {
         console.error("Error parsing JSON from Gemini response:", e);
         // Fallback if parsing fails - but still return 200

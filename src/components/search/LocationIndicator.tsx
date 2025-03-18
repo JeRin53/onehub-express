@@ -13,9 +13,9 @@ const LocationIndicator: React.FC<LocationIndicatorProps> = ({ loading, enabled 
       {loading ? (
         <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
       ) : enabled ? (
-        <MapPin className="h-4 w-4 text-green-500" />
+        <MapPin className="h-4 w-4 text-green-500" title="Location enabled" />
       ) : (
-        <MapPin className="h-4 w-4 text-gray-400" />
+        <MapPin className="h-4 w-4 text-gray-400" title="Location disabled" />
       )}
     </div>
   );

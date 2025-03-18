@@ -9,6 +9,7 @@ import { useSuggestions } from "@/hooks/use-suggestions";
 import LocationIndicator from "./LocationIndicator";
 import SearchButton from "./SearchButton";
 import SearchSuggestions from "./SearchSuggestions";
+import { toast } from "sonner";
 
 interface GeminiSearchBarProps {
   serviceType?: string;
@@ -44,6 +45,12 @@ const GeminiSearchBar: React.FC<GeminiSearchBarProps> = ({
   });
 
   const performSearch = async () => {
+    if (!query.trim()) {
+      toast.error("Please enter a search query");
+      return;
+    }
+    
+    console.log("Performing search with query:", query);
     await handleSearch({
       query,
       serviceType,
@@ -55,6 +62,7 @@ const GeminiSearchBar: React.FC<GeminiSearchBarProps> = ({
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") {
+      setShowSuggestions(false);
       performSearch();
     }
   };

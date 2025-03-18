@@ -31,27 +31,35 @@ export const useSearch = () => {
     locationEnabled,
     onResults,
   }: SearchOptions) => {
-    if (query.trim() === "") return;
+    if (query.trim() === "") {
+      toast.error("Please enter a search query");
+      return;
+    }
 
     try {
       setLoading(true);
+      console.log("Starting search with query:", query);
+      console.log("Service type:", serviceType);
+      console.log("Location enabled:", locationEnabled);
+      console.log("Location data:", locationData);
 
-      if (!session) {
-        toast.error("Please log in to use the search feature");
-        navigate("/login");
-        return;
+      // If user is logged in, save search to history
+      if (session) {
+        try {
+          await supabase.from("search_history").insert([
+            {
+              user_id: session.user.id,
+              query: query,
+              service_type: serviceType,
+            },
+          ]);
+        } catch (historyError) {
+          console.error("Error saving search history:", historyError);
+          // Continue with search even if history saving fails
+        }
       }
 
-      // Save search to history
-      await supabase.from("search_history").insert([
-        {
-          user_id: session.user.id,
-          query: query,
-          service_type: serviceType,
-        },
-      ]);
-
-      // Get search results
+      // Get search results from Gemini
       const { data, error } = await supabase.functions.invoke("gemini-search", {
         body: {
           query,
@@ -61,7 +69,7 @@ export const useSearch = () => {
       });
 
       if (error) {
-        console.error("Search error:", error);
+        console.error("Search error from Supabase function:", error);
         toast.error("Search failed. Please try again.");
         if (onResults) {
           onResults({
@@ -71,6 +79,8 @@ export const useSearch = () => {
         }
         return;
       }
+
+      console.log("Search results:", data);
 
       // Send results to parent component
       if (onResults) {
@@ -98,7 +108,7 @@ export const useSearch = () => {
         }
       }
 
-      // Navigate to the appropriate service page
+      // Navigate to the appropriate service page if needed
       if (detectedService !== "general" && detectedService !== serviceType) {
         navigate(`/services/${detectedService}`, {
           state: {
@@ -111,7 +121,7 @@ export const useSearch = () => {
 
       return data;
     } catch (error: any) {
-      console.error("Search error:", error);
+      console.error("Unexpected search error:", error);
       toast.error(error.message || "Search failed. Please try again.");
 
       if (onResults) {

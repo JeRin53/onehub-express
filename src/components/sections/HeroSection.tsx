@@ -13,17 +13,42 @@ const HeroSection = () => {
       setAnimatedLogos(true);
     }, 500);
     
-    return () => clearTimeout(timer);
+    // Add smooth scrolling to anchor links
+    const scrollToSection = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && target.tagName === 'A' && target.getAttribute('href')?.startsWith('#')) {
+        e.preventDefault();
+        const sectionId = target.getAttribute('href')?.substring(1);
+        const section = document.getElementById(sectionId || '');
+        
+        if (section) {
+          window.scrollTo({
+            top: section.offsetTop - 80, // Adjust for navbar height
+            behavior: 'smooth'
+          });
+        }
+      }
+    };
+    
+    // Add event listener for smooth scrolling
+    document.addEventListener('click', scrollToSection);
+    
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('click', scrollToSection);
+    };
   }, []);
 
   // Popular services that will be shown floating and merging into ONEHUB
   const serviceLogos = [
-    { name: "Food Delivery", icon: "🍔", color: "bg-orange-500", delay: 0 },
-    { name: "Cab Booking", icon: "🚕", color: "bg-violet-500", delay: 0.3 },
-    { name: "Hotel Booking", icon: "🏨", color: "bg-green-500", delay: 0.6 },
-    { name: "Shopping", icon: "🛍️", color: "bg-blue-500", delay: 0.9 },
-    { name: "Train Tickets", icon: "🚆", color: "bg-pink-500", delay: 1.2 },
-    { name: "Fuel Delivery", icon: "⛽", color: "bg-yellow-500", delay: 1.5 },
+    { name: "Swiggy", icon: "🍔", logo: "/logos/swiggy.png", color: "bg-orange-500", delay: 0 },
+    { name: "Uber", icon: "🚕", logo: "/logos/uber.png", color: "bg-violet-500", delay: 0.3 },
+    { name: "Booking.com", icon: "🏨", logo: "/logos/booking.png", color: "bg-green-500", delay: 0.6 },
+    { name: "Amazon", icon: "🛍️", logo: "/logos/amazon.png", color: "bg-blue-500", delay: 0.9 },
+    { name: "MakeMyTrip", icon: "🚆", logo: "/logos/makemytrip.png", color: "bg-pink-500", delay: 1.2 },
+    { name: "FuelBuddy", icon: "⛽", logo: "/logos/fuelbuddy.png", color: "bg-yellow-500", delay: 1.5 },
+    { name: "Zomato", icon: "🍕", logo: "/logos/zomato.png", color: "bg-red-500", delay: 1.8 },
+    { name: "Flipkart", icon: "📦", logo: "/logos/flipkart.png", color: "bg-blue-400", delay: 2.1 },
   ];
 
   return (
@@ -67,10 +92,10 @@ const HeroSection = () => {
                 Get Started
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-              <Link to="/#services" className="btn-outline flex items-center justify-center">
+              <a href="#services" className="btn-outline flex items-center justify-center">
                 Explore Services
                 <ChevronRight className="ml-1 h-5 w-5" />
-              </Link>
+              </a>
             </div>
             
             <div className="mt-12 grid grid-cols-3 gap-8 animate-fade-in" style={{ animationDelay: "0.6s" }}>
@@ -121,6 +146,28 @@ const HeroSection = () => {
                   <span role="img" aria-label={service.name}>{service.icon}</span>
                 </div>
               ))}
+              
+              {/* Partner logos */}
+              <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center">
+                <div className="relative w-full h-full">
+                  {/* App logos in orbit around ONEHUB */}
+                  <div className="absolute top-5 left-5 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "0.7s" }}>
+                    <img src="/logos/swiggy.png" alt="Swiggy" className="h-8 w-8 object-contain" />
+                  </div>
+                  <div className="absolute top-20 right-10 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "1.1s" }}>
+                    <img src="/logos/zomato.png" alt="Zomato" className="h-8 w-8 object-contain" />
+                  </div>
+                  <div className="absolute bottom-10 left-10 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "1.5s" }}>
+                    <img src="/logos/uber.png" alt="Uber" className="h-8 w-8 object-contain" />
+                  </div>
+                  <div className="absolute bottom-20 right-5 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "1.9s" }}>
+                    <img src="/logos/amazon.png" alt="Amazon" className="h-8 w-8 object-contain" />
+                  </div>
+                  <div className="absolute top-1/3 left-1/4 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "2.3s" }}>
+                    <img src="/logos/flipkart.png" alt="Flipkart" className="h-8 w-8 object-contain" />
+                  </div>
+                </div>
+              </div>
               
               {/* Service category labels */}
               <div className="absolute top-5 left-0 bg-white p-3 rounded-lg shadow-md flex items-center animate-fade-in" style={{ animationDelay: "0.8s" }}>

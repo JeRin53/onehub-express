@@ -29,7 +29,7 @@ const GeminiSearchBar: React.FC<GeminiSearchBarProps> = ({
   const debouncedQuery = useDebounce(query, 500);
   
   // Custom hooks
-  const { locationData, locationLoading, locationEnabled } = useLocation();
+  const { locationData, locationLoading, locationEnabled, refreshLocation } = useLocation();
   const { loading: searchLoading, handleSearch } = useSearch();
   const { 
     suggestions, 
@@ -47,6 +47,11 @@ const GeminiSearchBar: React.FC<GeminiSearchBarProps> = ({
   const performSearch = async () => {
     if (!query.trim()) {
       toast.error("Please enter a search query");
+      return;
+    }
+    
+    if (!session) {
+      toast.error("Please log in to use the search feature");
       return;
     }
     
@@ -87,7 +92,7 @@ const GeminiSearchBar: React.FC<GeminiSearchBarProps> = ({
           onKeyPress={handleKeyPress}
           onFocus={() => query.length >= 3 && setShowSuggestions(true)}
           onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-          className="pr-24" // Increased padding to accommodate both buttons
+          className="pr-24 text-gray-800 bg-white/90 border-gray-300 focus:border-orange-500 focus:ring-2 focus:ring-orange-200" 
         />
         
         {/* Location indicator */}

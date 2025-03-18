@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
-import { Send, Bot, User, Sparkles } from "lucide-react";
+import { Send, Bot, User, Sparkles, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Message {
@@ -85,6 +85,7 @@ const AIChat: React.FC<AIChatProps> = ({
     setLoading(true);
 
     try {
+      console.log("Sending message to OpenAI Chat function");
       // Prepare messages format for OpenAI
       const messageHistory = messages
         .filter(msg => msg.role !== 'system') // Filter out system messages
@@ -96,7 +97,12 @@ const AIChat: React.FC<AIChatProps> = ({
         body: { messages: messageHistory, serviceType },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error invoking OpenAI Chat function:", error);
+        throw new Error(error.message || "Failed to send message");
+      }
+
+      console.log("Received response from OpenAI Chat function:", data);
 
       if (data && data.message) {
         const assistantMessage: Message = {
@@ -106,6 +112,8 @@ const AIChat: React.FC<AIChatProps> = ({
         };
         
         setMessages(prev => [...prev, assistantMessage]);
+      } else {
+        throw new Error("Invalid response from chat service");
       }
     } catch (error: any) {
       console.error("Chat error:", error);
@@ -116,7 +124,7 @@ const AIChat: React.FC<AIChatProps> = ({
         ...prev,
         {
           role: 'assistant',
-          content: "I'm sorry, I couldn't process your request. Please try again.",
+          content: "I'm sorry, I couldn't process your request. Please try again later.",
           timestamp: new Date(),
         },
       ]);
@@ -136,7 +144,7 @@ const AIChat: React.FC<AIChatProps> = ({
   };
 
   return (
-    <Card className={`flex flex-col h-[550px] ${className}`}>
+    <Card className={`flex flex-col ${className || 'h-[550px]'}`}>
       <CardHeader className="px-4 py-3 border-b">
         <CardTitle className="flex items-center text-lg">
           <Bot className="h-5 w-5 mr-2 text-orange-500" />
@@ -209,16 +217,21 @@ const AIChat: React.FC<AIChatProps> = ({
             type="submit" 
             size="icon" 
             onClick={sendMessage} 
-            disabled={loading || !input.trim()} 
+            disabled={loading || !input.trim() || !session} 
             className="shrink-0"
           >
             {loading ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               <Send className="h-4 w-4" />
             )}
           </Button>
         </div>
+        {!session && (
+          <p className="w-full text-center text-xs text-red-500 mt-2">
+            Please log in to use the chat assistant
+          </p>
+        )}
       </CardFooter>
     </Card>
   );

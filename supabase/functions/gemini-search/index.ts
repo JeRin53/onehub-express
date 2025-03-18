@@ -39,7 +39,16 @@ serve(async (req) => {
       console.error("GEMINI_API_KEY is not set");
       return new Response(
         JSON.stringify({ 
-          results: [],
+          results: [
+            {
+              title: "API Key Missing",
+              description: "Gemini API key is not configured. Please set up the API key in Supabase secrets.",
+              provider: "System",
+              price: "N/A",
+              rating: "N/A",
+              eta: "N/A"
+            }
+          ],
           suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
           summary: "Could not connect to AI service. Showing default results." 
         }),
@@ -94,6 +103,7 @@ serve(async (req) => {
     `;
 
     try {
+      console.log("Sending request to Gemini API");
       const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent", {
         method: "POST",
         headers: {
@@ -121,10 +131,31 @@ serve(async (req) => {
 
       if (!response.ok) {
         console.error(`Gemini API error: ${response.status} ${response.statusText}`);
+        
+        // Try to get error details
+        let errorMessage = "Unknown error";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error?.message || "Unknown error";
+          console.error("Gemini API error details:", errorData);
+        } catch (e) {
+          console.error("Could not parse error response", e);
+        }
+        
         // Return fallback results with 200 status code
         return new Response(
           JSON.stringify({ 
-            results: [],
+            error: errorMessage,
+            results: [
+              {
+                title: "API Error",
+                description: `Could not process your search request: ${errorMessage}`,
+                provider: "System",
+                price: "N/A",
+                rating: "N/A",
+                eta: "N/A"
+              }
+            ],
             suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
             summary: "Could not process your search request. Showing default results." 
           }),
@@ -133,13 +164,23 @@ serve(async (req) => {
       }
 
       const data = await response.json();
+      console.log("Received response from Gemini API");
       
       if (!data.candidates || data.candidates.length === 0) {
         console.error("No response from Gemini API");
         // Return fallback results with 200 status code
         return new Response(
           JSON.stringify({ 
-            results: [],
+            results: [
+              {
+                title: "No Results",
+                description: "Could not generate results for your query",
+                provider: "System",
+                price: "N/A",
+                rating: "N/A",
+                eta: "N/A"
+              }
+            ],
             suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
             summary: "Could not process your search request. Showing default results." 
           }),
@@ -153,21 +194,73 @@ serve(async (req) => {
       
       try {
         // Try to extract a JSON object from the response text
-        const jsonMatch = textResponse.match(/```json\s*([\s\S]*?)\s*```/) || 
-                          textResponse.match(/{[\s\S]*}/);
-                          
-        const jsonString = jsonMatch ? jsonMatch[0].replace(/```json|```/g, '') : textResponse;
-        parsedResponse = JSON.parse(jsonString.replace(/\n/g, ''));
+        console.log("Attempting to parse Gemini response");
+        
+        let jsonString = textResponse;
+        
+        // Check if the response is wrapped in markdown code blocks
+        const jsonMatch = textResponse.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          jsonString = jsonMatch[1];
+        } 
+        // If not in code blocks, try to find JSON object directly
+        else {
+          const objectMatch = textResponse.match(/{[\s\S]*}/);
+          if (objectMatch) {
+            jsonString = objectMatch[0];
+          }
+        }
+        
+        // Parse the JSON string
+        parsedResponse = JSON.parse(jsonString);
         
         console.log("Successfully parsed Gemini response");
       } catch (e) {
         console.error("Error parsing JSON from Gemini response:", e);
-        // Fallback if parsing fails - but still return 200
-        parsedResponse = {
-          results: [],
-          suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
-          summary: "Could not parse search results. Please try a different search query."
-        };
+        console.log("Raw response:", textResponse);
+        
+        // Try a more aggressive approach to extract JSON
+        try {
+          // Find anything that looks like a JSON object
+          const possibleJson = textResponse.match(/{[\s\S]*}/);
+          if (possibleJson) {
+            // Clean up the string by removing extra whitespace and newlines
+            const cleanedJson = possibleJson[0].replace(/\s+/g, ' ');
+            parsedResponse = JSON.parse(cleanedJson);
+            console.log("Parsed JSON with aggressive approach");
+          } else {
+            throw new Error("No JSON object found in response");
+          }
+        } catch (fallbackError) {
+          console.error("Fallback parsing failed:", fallbackError);
+          
+          // Fallback if parsing fails - but still return 200
+          parsedResponse = {
+            results: [
+              {
+                title: "Search Results",
+                description: "We found some results based on your query",
+                provider: "System",
+                price: "Various",
+                rating: "N/A",
+                eta: "N/A"
+              }
+            ],
+            suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
+            summary: "Could not parse search results. Please try a different search query."
+          };
+        }
+      }
+
+      // Ensure the response has the expected structure
+      if (!parsedResponse.results) {
+        parsedResponse.results = [];
+      }
+      if (!parsedResponse.suggestions) {
+        parsedResponse.suggestions = [];
+      }
+      if (!parsedResponse.summary) {
+        parsedResponse.summary = "Results for your search";
       }
 
       return new Response(
@@ -179,7 +272,17 @@ serve(async (req) => {
       // Return fallback results with 200 status code
       return new Response(
         JSON.stringify({ 
-          results: [],
+          error: fetchError.message,
+          results: [
+            {
+              title: "Connection Error",
+              description: "Could not connect to search service",
+              provider: "System",
+              price: "N/A",
+              rating: "N/A",
+              eta: "N/A"
+            }
+          ],
           suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
           summary: "Could not connect to AI service. Showing default results." 
         }),
@@ -192,7 +295,16 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: error.message || "An error occurred during the search",
-        results: [],
+        results: [
+          {
+            title: "Error",
+            description: error.message || "An error occurred during the search",
+            provider: "System",
+            price: "N/A",
+            rating: "N/A",
+            eta: "N/A"
+          }
+        ],
         suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
         summary: "An error occurred. Showing default results."
       }),

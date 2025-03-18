@@ -4,8 +4,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.0";
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -28,123 +26,95 @@ serve(async (req) => {
       );
     }
 
-    const { messages, serviceType } = await req.json();
+    // Extract the request body
+    const { messages, serviceType = 'general' } = await req.json();
     
     if (!messages || !Array.isArray(messages)) {
-      return new Response(
-        JSON.stringify({ error: 'Messages array is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error("Messages array is required");
     }
 
-    console.log(`Processing OpenAI chat for service: ${serviceType}`);
+    console.log(`Processing chat request for service type: ${serviceType}`);
+    console.log(`Message history length: ${messages.length}`);
 
-    // Create a Supabase client with the user's JWT token
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    // Get the user information from the session
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Not authenticated' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Get user data from the database for context
-    const { data: userData, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single();
-
-    if (profileError) {
-      console.error("Error fetching user profile:", profileError);
-    }
-
-    // Determine the system message based on the service type
-    let systemMessage = `You are a helpful assistant for the ONEHUB app. `;
+    // Create system message based on service type
+    let systemMessage = "You are a helpful assistant for the ONEHUB app.";
     
     switch (serviceType) {
       case 'food-delivery':
-        systemMessage += `You specialize in food delivery assistance. Help users find restaurants, order food, and provide information about cuisines, dishes, and food-related queries.`;
+        systemMessage = "You are a food delivery assistant for ONEHUB. Help users find restaurants, recommend dishes, and provide information about food delivery services.";
         break;
       case 'cab-booking':
-        systemMessage += `You specialize in cab booking assistance. Help users find rides, estimate fares, and provide information about routes, cab types, and transportation-related queries.`;
+        systemMessage = "You are a cab booking assistant for ONEHUB. Help users book rides, estimate fares, and provide information about transportation options.";
         break;
       case 'hotel-reservation':
-        systemMessage += `You specialize in hotel reservation assistance. Help users find accommodations, check availability, and provide information about hotels, amenities, and lodging-related queries.`;
+        systemMessage = "You are a hotel reservation assistant for ONEHUB. Help users find accommodations, compare prices, and provide information about hotels and resorts.";
         break;
       case 'fuel-delivery':
-        systemMessage += `You specialize in fuel delivery assistance. Help users order fuel, check prices, and provide information about fuel types and delivery-related queries.`;
+        systemMessage = "You are a fuel delivery assistant for ONEHUB. Help users order fuel, find gas stations, and provide information about fuel prices and types.";
         break;
       case 'train-booking':
-        systemMessage += `You specialize in train booking assistance. Help users find train routes, check schedules, and provide information about trains, classes, and travel-related queries.`;
+        systemMessage = "You are a train booking assistant for ONEHUB. Help users find train routes, check schedules, and provide information about train tickets and services.";
         break;
       default:
-        systemMessage += `Provide helpful information about services offered by ONEHUB including food delivery, cab booking, hotels, fuel delivery, and train bookings.`;
-        break;
-    }
-    
-    // Add user context if available
-    if (userData) {
-      systemMessage += ` The user's name is ${userData.first_name || 'unknown'}.`;
+        systemMessage = "You are a helpful assistant for the ONEHUB app. Provide information about various services integrated in our platform, including food delivery, cab booking, hotel reservations, fuel delivery, and train booking.";
     }
 
-    // Prepare messages for OpenAI API
-    const fullMessages = [
-      { role: 'system', content: systemMessage },
-      ...messages
-    ];
+    // Add system message if not already present
+    const allMessages = messages[0]?.role === 'system' 
+      ? messages 
+      : [{ role: 'system', content: systemMessage }, ...messages];
 
     // Call OpenAI API
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: fullMessages,
+        messages: allMessages,
         temperature: 0.7,
-      }),
+        max_tokens: 800
+      })
     });
 
-    const data = await openAIResponse.json();
+    // Handle API response
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error("OpenAI API error:", errorData);
+      throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+    }
+
+    const data = await response.json();
     
-    if (!data.choices || data.choices.length === 0) {
-      throw new Error("No response from OpenAI API");
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      throw new Error("Invalid response from OpenAI API");
     }
 
-    // Store this interaction in the database if it's a user message
-    if (messages.length > 0 && messages[messages.length - 1].role === 'user') {
-      const { error: insertError } = await supabase
-        .from('search_history')
-        .insert([
-          { 
-            user_id: user.id, 
-            query: messages[messages.length - 1].content,
-            service_type: serviceType || 'general'
-          }
-        ]);
-        
-      if (insertError) {
-        console.error("Error storing chat interaction:", insertError);
-      }
-    }
-
+    // Return the assistant's message
     return new Response(
-      JSON.stringify({ message: data.choices[0].message }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        message: data.choices[0].message,
+        usage: data.usage
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
     console.error("Error in openai-chat function:", error);
+    
     return new Response(
-      JSON.stringify({ error: error.message || "An error occurred during the chat" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: error.message || "An error occurred during chat processing",
+        message: {
+          role: "assistant",
+          content: "I'm sorry, I encountered an error processing your request. Please try again later."
+        }
+      }),
+      { 
+        status: 200, // Still return 200 to avoid breaking the frontend
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     );
   }
 });

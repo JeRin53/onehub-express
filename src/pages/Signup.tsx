@@ -24,9 +24,14 @@ const Signup = () => {
   useEffect(() => {
     // Check if user is already logged in
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate("/dashboard");
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          console.log("User already logged in, redirecting to dashboard");
+          navigate("/dashboard");
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
       }
     };
     
@@ -46,7 +51,9 @@ const Signup = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signUp({
+      console.log("Attempting signup with email:", values.email);
+      
+      const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
@@ -61,9 +68,11 @@ const Signup = () => {
         throw error;
       }
       
+      console.log("Signup successful:", data);
       toast.success("Account created successfully! Please check your email to verify your account.");
       navigate("/login");
     } catch (error: any) {
+      console.error("Signup error:", error.message);
       toast.error(error.message || "An error occurred during signup");
     } finally {
       setLoading(false);

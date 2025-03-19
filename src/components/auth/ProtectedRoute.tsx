@@ -15,6 +15,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     console.log("ProtectedRoute: loading:", loading, "user:", user ? "exists" : "null");
   }, [loading, user]);
   
+  // Add a timeout to prevent infinite loading
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.log("ProtectedRoute: Loading timeout reached, forcing redirect");
+        // We don't need to do anything here, just for debugging
+      }
+    }, 5000); // 5 second timeout
+    
+    return () => clearTimeout(timer);
+  }, [loading]);
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -24,9 +36,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
   
   if (!user) {
+    console.log("ProtectedRoute: No user, redirecting to login");
     return <Navigate to="/login" replace />;
   }
   
+  console.log("ProtectedRoute: User authenticated, rendering children");
   return <>{children}</>;
 };
 

@@ -40,9 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .single();
 
       if (error) {
-        if (error.code !== 'PGRST116') {
-          console.error("Error fetching user profile from database:", error);
-        }
+        console.error("Error fetching user profile from database:", error);
         
         // If profile couldn't be fetched from database, try auth metadata
         const { data: userData } = await supabase.auth.getUser();
@@ -70,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error) {
       console.error("Error in fetchUserProfile:", error);
-      toast.error("Failed to load your profile");
+      setLoading(false); // Make sure to set loading to false even on error
     }
   };
 
@@ -98,7 +96,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error("Error getting initial session:", error);
-        toast.error("Authentication error occurred");
       } finally {
         setLoading(false);
       }

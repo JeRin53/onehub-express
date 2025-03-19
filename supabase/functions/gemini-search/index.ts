@@ -39,18 +39,9 @@ serve(async (req) => {
       console.error("GEMINI_API_KEY is not set");
       return new Response(
         JSON.stringify({ 
-          results: [
-            {
-              title: "API Key Missing",
-              description: "Gemini API key is not configured. Please set up the API key in Supabase secrets.",
-              provider: "System",
-              price: "N/A",
-              rating: "N/A",
-              eta: "N/A"
-            }
-          ],
-          suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
-          summary: "Could not connect to AI service. Showing default results." 
+          results: getMockResults(serviceType, query),
+          suggestions: getMockSuggestions(serviceType, query),
+          summary: "Using demo results (API key not configured)" 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -63,32 +54,31 @@ serve(async (req) => {
     }
 
     const prompt = `
-      You are a helpful assistant for the ONEHUB app that aggregates various services.
+      You are an intelligent assistant for a service aggregator platform called ONEHUB.
       User is searching for: "${query}" in the service category: "${serviceType || 'general'}".
       ${locationContext}
-      Provide concise, relevant information about their query.
+      
+      Instructions:
+      1. Users may search for food items (like biriyani), hotels, cab services, or other services.
+      2. Provide concise, relevant information about their query.
+      3. Extract the main intent, priorities, and preferences from their query.
       
       For a food delivery search like "I want to order biriyani, fast and cheap", extract:
       - The food item (biriyani)
       - User priorities (fast delivery, cheap price)
       - Relevant cuisine types (Indian)
       
-      If this is a food delivery search, suggest restaurants, dishes, or cuisines.
-      If this is a cab booking search, suggest route options, fare estimates, or cab types.
-      If this is a hotel reservation search, suggest hotels, features, or locations.
-      If this is a fuel delivery search, provide information about fuel types, prices, or delivery options.
-      If this is a train booking search, suggest train routes, timings, or classes.
-      
       Format the response as a JSON object with the following structure:
       {
         "results": [
           {
-            "title": "Result title",
+            "title": "Result title (restaurant, hotel, or service name)",
             "description": "Brief description",
             "provider": "Service provider name",
             "price": "Estimated price (if applicable)",
             "rating": "Rating (if applicable)",
-            "eta": "Estimated delivery/arrival time"
+            "eta": "Estimated delivery/arrival time",
+            "image": "URL to an image if applicable (or leave empty)"
           }
         ],
         "suggestions": ["suggestion1", "suggestion2", "suggestion3"],
@@ -142,22 +132,13 @@ serve(async (req) => {
           console.error("Could not parse error response", e);
         }
         
-        // Return fallback results with 200 status code
+        // Return fallback results
         return new Response(
           JSON.stringify({ 
             error: errorMessage,
-            results: [
-              {
-                title: "API Error",
-                description: `Could not process your search request: ${errorMessage}`,
-                provider: "System",
-                price: "N/A",
-                rating: "N/A",
-                eta: "N/A"
-              }
-            ],
-            suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
-            summary: "Could not process your search request. Showing default results." 
+            results: getMockResults(serviceType, query),
+            suggestions: getMockSuggestions(serviceType, query),
+            summary: `Demo results (API error: ${errorMessage})` 
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -168,21 +149,11 @@ serve(async (req) => {
       
       if (!data.candidates || data.candidates.length === 0) {
         console.error("No response from Gemini API");
-        // Return fallback results with 200 status code
         return new Response(
           JSON.stringify({ 
-            results: [
-              {
-                title: "No Results",
-                description: "Could not generate results for your query",
-                provider: "System",
-                price: "N/A",
-                rating: "N/A",
-                eta: "N/A"
-              }
-            ],
-            suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
-            summary: "Could not process your search request. Showing default results." 
+            results: getMockResults(serviceType, query),
+            suggestions: getMockSuggestions(serviceType, query),
+            summary: "Demo results (No API response)" 
           }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
@@ -219,45 +190,20 @@ serve(async (req) => {
         console.error("Error parsing JSON from Gemini response:", e);
         console.log("Raw response:", textResponse);
         
-        // Try a more aggressive approach to extract JSON
-        try {
-          // Find anything that looks like a JSON object
-          const possibleJson = textResponse.match(/{[\s\S]*}/);
-          if (possibleJson) {
-            // Clean up the string by removing extra whitespace and newlines
-            const cleanedJson = possibleJson[0].replace(/\s+/g, ' ');
-            parsedResponse = JSON.parse(cleanedJson);
-            console.log("Parsed JSON with aggressive approach");
-          } else {
-            throw new Error("No JSON object found in response");
-          }
-        } catch (fallbackError) {
-          console.error("Fallback parsing failed:", fallbackError);
-          
-          // Fallback if parsing fails - but still return 200
-          parsedResponse = {
-            results: [
-              {
-                title: "Search Results",
-                description: "We found some results based on your query",
-                provider: "System",
-                price: "Various",
-                rating: "N/A",
-                eta: "N/A"
-              }
-            ],
-            suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
-            summary: "Could not parse search results. Please try a different search query."
-          };
-        }
+        // Fallback - return mock data
+        parsedResponse = {
+          results: getMockResults(serviceType, query),
+          suggestions: getMockSuggestions(serviceType, query),
+          summary: "Demo results (Failed to parse API response)"
+        };
       }
 
       // Ensure the response has the expected structure
       if (!parsedResponse.results) {
-        parsedResponse.results = [];
+        parsedResponse.results = getMockResults(serviceType, query);
       }
       if (!parsedResponse.suggestions) {
-        parsedResponse.suggestions = [];
+        parsedResponse.suggestions = getMockSuggestions(serviceType, query);
       }
       if (!parsedResponse.summary) {
         parsedResponse.summary = "Results for your search";
@@ -273,18 +219,9 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: fetchError.message,
-          results: [
-            {
-              title: "Connection Error",
-              description: "Could not connect to search service",
-              provider: "System",
-              price: "N/A",
-              rating: "N/A",
-              eta: "N/A"
-            }
-          ],
-          suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
-          summary: "Could not connect to AI service. Showing default results." 
+          results: getMockResults(serviceType, query),
+          suggestions: getMockSuggestions(serviceType, query),
+          summary: "Demo results (Connection error)" 
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -312,3 +249,166 @@ serve(async (req) => {
     );
   }
 });
+
+// Mock results function for fallback when API is unavailable
+function getMockResults(serviceType, query) {
+  const queryLower = query.toLowerCase();
+  
+  // Default food delivery results
+  const foodResults = [
+    {
+      title: "Spice Junction",
+      description: "Authentic Indian cuisine with famous biriyani and curry dishes",
+      provider: "Swiggy",
+      price: "₹200-₹500",
+      rating: "4.6",
+      eta: "25 min",
+      image: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    },
+    {
+      title: "Biryani House",
+      description: "Specializing in authentic dum biryani with secret family recipes",
+      provider: "Zomato",
+      price: "₹250-₹450",
+      rating: "4.3",
+      eta: "35 min",
+      image: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    },
+    {
+      title: "Paradise Restaurant",
+      description: "Famous for Hyderabadi biryani and North Indian cuisine",
+      provider: "Swiggy",
+      price: "₹300-₹600",
+      rating: "4.8",
+      eta: "30 min",
+      image: "https://images.unsplash.com/photo-1633945274405-b6c8069047b0?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    }
+  ];
+  
+  // Default cab booking results
+  const cabResults = [
+    {
+      title: "Economy Sedan",
+      description: "Comfortable ride for up to 4 passengers",
+      provider: "Uber",
+      price: "₹250",
+      rating: "4.5",
+      eta: "5 min",
+      image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    },
+    {
+      title: "Premium SUV",
+      description: "Spacious ride for up to 6 passengers with extra luggage space",
+      provider: "Ola",
+      price: "₹350",
+      rating: "4.7",
+      eta: "7 min",
+      image: "https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    },
+    {
+      title: "Mini",
+      description: "Affordable ride for up to 3 passengers",
+      provider: "Uber",
+      price: "₹150",
+      rating: "4.3",
+      eta: "3 min",
+      image: "https://images.unsplash.com/photo-1494905998402-395d579af36f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    }
+  ];
+  
+  // Default hotel booking results
+  const hotelResults = [
+    {
+      title: "Grand Luxury Hotel",
+      description: "5-star hotel with pool, spa, and fine dining",
+      provider: "Booking.com",
+      price: "₹8,000/night",
+      rating: "4.8",
+      eta: "Check-in: 2 PM",
+      image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    },
+    {
+      title: "Business Inn",
+      description: "3-star hotel perfect for business travelers",
+      provider: "MakeMyTrip",
+      price: "₹3,500/night",
+      rating: "4.2",
+      eta: "Check-in: 12 PM",
+      image: "https://images.unsplash.com/photo-1551918120-9739cb430c6d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    },
+    {
+      title: "Budget Stay",
+      description: "Affordable accommodation with basic amenities",
+      provider: "OYO",
+      price: "₹1,200/night",
+      rating: "3.8",
+      eta: "Check-in: 1 PM",
+      image: "https://images.unsplash.com/photo-1625244724120-1fd1d34d00f6?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
+    }
+  ];
+
+  // Determine which results to return based on query and service type
+  if (serviceType === "food-delivery" || queryLower.includes("food") || queryLower.includes("restaurant") || 
+      queryLower.includes("biriyani") || queryLower.includes("pizza") || queryLower.includes("dinner") || 
+      queryLower.includes("lunch") || queryLower.includes("breakfast")) {
+    return foodResults;
+  } else if (serviceType === "cab-booking" || queryLower.includes("cab") || queryLower.includes("taxi") || 
+             queryLower.includes("ride") || queryLower.includes("uber") || queryLower.includes("ola")) {
+    return cabResults;
+  } else if (serviceType === "hotel-reservation" || queryLower.includes("hotel") || queryLower.includes("stay") || 
+             queryLower.includes("room") || queryLower.includes("accommodation")) {
+    return hotelResults;
+  } else {
+    // For general queries, mix results
+    return [foodResults[0], cabResults[0], hotelResults[0]];
+  }
+}
+
+// Mock suggestions function for fallback when API is unavailable
+function getMockSuggestions(serviceType, query) {
+  const queryLower = query.toLowerCase();
+  
+  // Food-related suggestions
+  if (serviceType === "food-delivery" || queryLower.includes("food") || queryLower.includes("restaurant") || 
+      queryLower.includes("biriyani") || queryLower.includes("pizza")) {
+    return [
+      "Best biryani places nearby",
+      "Affordable dinner options",
+      "Fast food delivery under 30 minutes",
+      "Top-rated restaurants in your area",
+      "Vegetarian dinner options"
+    ];
+  }
+  // Cab-related suggestions
+  else if (serviceType === "cab-booking" || queryLower.includes("cab") || queryLower.includes("taxi") || 
+           queryLower.includes("ride")) {
+    return [
+      "Book a premium cab now",
+      "Affordable cab options near me",
+      "Schedule a ride for tomorrow",
+      "Airport pickup services",
+      "Shared rides for commuting"
+    ];
+  }
+  // Hotel-related suggestions
+  else if (serviceType === "hotel-reservation" || queryLower.includes("hotel") || queryLower.includes("stay") || 
+           queryLower.includes("room")) {
+    return [
+      "5-star hotels with pool",
+      "Budget stays under ₹2000",
+      "Hotels with free breakfast",
+      "Business hotels with conference rooms",
+      "Hotels with late check-out option"
+    ];
+  }
+  // General suggestions
+  else {
+    return [
+      "Food delivery services nearby",
+      "Book a cab for airport pickup",
+      "Best hotels for weekend stay",
+      "Quick meal delivery options",
+      "Services available in your area"
+    ];
+  }
+}

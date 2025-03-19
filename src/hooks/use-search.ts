@@ -51,13 +51,19 @@ export const useSearch = () => {
               user_id: session.user.id,
               query: query,
               service_type: serviceType,
+              location_data: locationEnabled ? JSON.stringify(locationData) : null,
             },
           ]);
+          console.log("Search saved to history");
         } catch (historyError) {
           console.error("Error saving search history:", historyError);
           // Continue with search even if history saving fails
         }
       }
+
+      // Set a reasonable timeout for the search
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
       // Get search results from Gemini
       const { data, error } = await supabase.functions.invoke("gemini-search", {
@@ -66,7 +72,10 @@ export const useSearch = () => {
           serviceType,
           location: locationEnabled ? locationData : null,
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error("Search error from Supabase function:", error);
@@ -122,12 +131,20 @@ export const useSearch = () => {
       return data;
     } catch (error: any) {
       console.error("Unexpected search error:", error);
-      toast.error(error.message || "Search failed. Please try again.");
+      
+      let errorMessage = "Search failed. Please try again.";
+      if (error.name === "AbortError") {
+        errorMessage = "Search took too long. Please try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
 
       if (onResults) {
         onResults({
           results: [],
-          summary: "Search failed. Please try again.",
+          summary: errorMessage,
         });
       }
     } finally {

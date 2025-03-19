@@ -30,12 +30,20 @@ const queryClient = new QueryClient({
   },
 });
 
-// Scroll to top component
+// Scroll to top component - enhanced for smoother behavior
 function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // Smoother scroll to top with a slight delay to ensure page transition completes
+    const timeoutId = setTimeout(() => {
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, [pathname]);
 
   return null;
@@ -46,7 +54,7 @@ const App = () => (
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
-        <Sonner />
+        <Sonner position="top-right" closeButton={true} />
         <BrowserRouter>
           <ScrollToTop />
           <Routes>

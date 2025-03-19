@@ -1,11 +1,12 @@
 
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import GeminiSearchBar from "@/components/search/GeminiSearchBar";
 
 const HeroSection = () => {
   const [animatedLogos, setAnimatedLogos] = useState(false);
+  const navigate = useNavigate();
   
   useEffect(() => {
     // Start logo animation after component mounts
@@ -13,31 +14,14 @@ const HeroSection = () => {
       setAnimatedLogos(true);
     }, 500);
     
-    // Add smooth scrolling to anchor links
-    const scrollToSection = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (target && target.tagName === 'A' && target.getAttribute('href')?.startsWith('#')) {
-        e.preventDefault();
-        const sectionId = target.getAttribute('href')?.substring(1);
-        const section = document.getElementById(sectionId || '');
-        
-        if (section) {
-          window.scrollTo({
-            top: section.offsetTop - 80, // Adjust for navbar height
-            behavior: 'smooth'
-          });
-        }
-      }
-    };
-    
-    // Add event listener for smooth scrolling
-    document.addEventListener('click', scrollToSection);
-    
     return () => {
       clearTimeout(timer);
-      document.removeEventListener('click', scrollToSection);
     };
   }, []);
+
+  const handleExploreServices = () => {
+    navigate('/services');
+  };
 
   // Popular services that will be shown floating and merging into ONEHUB
   const serviceLogos = [
@@ -49,6 +33,16 @@ const HeroSection = () => {
     { name: "FuelBuddy", icon: "⛽", logo: "/logos/fuelbuddy.png", color: "bg-yellow-500", delay: 1.5 },
     { name: "Zomato", icon: "🍕", logo: "/logos/zomato.png", color: "bg-red-500", delay: 1.8 },
     { name: "Flipkart", icon: "📦", logo: "/logos/flipkart.png", color: "bg-blue-400", delay: 2.1 },
+  ];
+
+  // Partner logos for display
+  const partnerLogos = [
+    { name: "Swiggy", logo: "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/2560px-Swiggy_logo.svg.png", bg: "bg-white" },
+    { name: "Zomato", logo: "https://b.zmtcdn.com/web_assets/b40b97e677bc7b2ca77c58c61db266fe1603954218.png", bg: "bg-white" },
+    { name: "Uber", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Uber_logo_2018.svg/2560px-Uber_logo_2018.svg.png", bg: "bg-black" },
+    { name: "Ola", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Ola_Cabs_logo.svg/2560px-Ola_Cabs_logo.svg.png", bg: "bg-white" },
+    { name: "MakeMyTrip", logo: "https://imgak.mmtcdn.com/pwa_v3/pwa_hotel_assets/header/mmtLogoWhite.png", bg: "bg-blue-500" },
+    { name: "Amazon", logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/2560px-Amazon_logo.svg.png", bg: "bg-white" },
   ];
 
   return (
@@ -92,10 +86,13 @@ const HeroSection = () => {
                 Get Started
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-              <a href="#services" className="btn-outline flex items-center justify-center">
+              <button 
+                onClick={handleExploreServices} 
+                className="btn-outline flex items-center justify-center"
+              >
                 Explore Services
                 <ChevronRight className="ml-1 h-5 w-5" />
-              </a>
+              </button>
             </div>
             
             <div className="mt-12 grid grid-cols-3 gap-8 animate-fade-in" style={{ animationDelay: "0.6s" }}>
@@ -110,6 +107,26 @@ const HeroSection = () => {
               <div>
                 <h4 className="text-2xl md:text-3xl font-bold text-gray-900">99%</h4>
                 <p className="text-gray-600">Satisfaction</p>
+              </div>
+            </div>
+            
+            {/* Partner Logos Section */}
+            <div className="mt-12 animate-fade-in" style={{ animationDelay: "0.7s" }}>
+              <p className="text-sm font-medium text-gray-500 mb-3">TRUSTED BY LEADING BRANDS</p>
+              <div className="flex flex-wrap items-center gap-4">
+                {partnerLogos.map((partner, index) => (
+                  <div 
+                    key={index}
+                    className={`${partner.bg === 'bg-white' ? 'bg-white' : partner.bg} p-2 rounded-md shadow-sm h-8 flex items-center justify-center`}
+                    style={{ maxWidth: '90px' }}
+                  >
+                    <img 
+                      src={partner.logo} 
+                      alt={partner.name} 
+                      className="h-full w-auto object-contain" 
+                    />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -152,19 +169,19 @@ const HeroSection = () => {
                 <div className="relative w-full h-full">
                   {/* App logos in orbit around ONEHUB */}
                   <div className="absolute top-5 left-5 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "0.7s" }}>
-                    <img src="/logos/swiggy.png" alt="Swiggy" className="h-8 w-8 object-contain" />
+                    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Swiggy_logo.svg/2560px-Swiggy_logo.svg.png" alt="Swiggy" className="h-8 w-auto object-contain" />
                   </div>
                   <div className="absolute top-20 right-10 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "1.1s" }}>
-                    <img src="/logos/zomato.png" alt="Zomato" className="h-8 w-8 object-contain" />
+                    <img src="https://b.zmtcdn.com/web_assets/b40b97e677bc7b2ca77c58c61db266fe1603954218.png" alt="Zomato" className="h-8 w-auto object-contain" />
                   </div>
-                  <div className="absolute bottom-10 left-10 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "1.5s" }}>
-                    <img src="/logos/uber.png" alt="Uber" className="h-8 w-8 object-contain" />
+                  <div className="absolute bottom-10 left-10 bg-black p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "1.5s" }}>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/5/58/Uber_logo_2018.svg/2560px-Uber_logo_2018.svg.png" alt="Uber" className="h-8 w-auto object-contain" />
                   </div>
                   <div className="absolute bottom-20 right-5 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "1.9s" }}>
-                    <img src="/logos/amazon.png" alt="Amazon" className="h-8 w-8 object-contain" />
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/2560px-Amazon_logo.svg.png" alt="Amazon" className="h-8 w-auto object-contain" />
                   </div>
                   <div className="absolute top-1/3 left-1/4 bg-white p-2 rounded-lg shadow-md flex items-center animate-float" style={{ animationDelay: "2.3s" }}>
-                    <img src="/logos/flipkart.png" alt="Flipkart" className="h-8 w-8 object-contain" />
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Ola_Cabs_logo.svg/2560px-Ola_Cabs_logo.svg.png" alt="Ola" className="h-8 w-auto object-contain" />
                   </div>
                 </div>
               </div>

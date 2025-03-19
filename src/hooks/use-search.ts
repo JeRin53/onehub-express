@@ -62,8 +62,8 @@ export const useSearch = () => {
       }
 
       // Set a reasonable timeout for the search
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const abortController = new AbortController();
+      const timeoutId = setTimeout(() => abortController.abort(), 15000);
 
       // Get search results from Gemini
       const { data, error } = await supabase.functions.invoke("gemini-search", {
@@ -72,7 +72,6 @@ export const useSearch = () => {
           serviceType,
           location: locationEnabled ? locationData : null,
         },
-        signal: controller.signal,
       });
 
       clearTimeout(timeoutId);

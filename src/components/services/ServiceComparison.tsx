@@ -53,10 +53,40 @@ const ServiceComparison: React.FC<ServiceComparisonProps> = ({
   };
 
   const handleRedirect = (provider: ServiceProvider) => {
-    // In a real app, this would redirect to the provider's site or app
-    if (provider.redirectUrl) {
+    // Map of provider names to their respective URLs
+    const providerUrls: Record<string, string> = {
+      // Food delivery
+      "Swiggy": "https://www.swiggy.com",
+      "Zomato": "https://www.zomato.com",
+      "EatSure": "https://www.eatsure.com",
+      
+      // Cab booking
+      "Uber": "https://www.uber.com",
+      "Ola": "https://www.olacabs.com",
+      "Rapido": "https://www.rapido.bike",
+      
+      // Hotel reservation
+      "MakeMyTrip": "https://www.makemytrip.com",
+      "Booking.com": "https://www.booking.com",
+      "Airbnb": "https://www.airbnb.com",
+      
+      // Fuel delivery
+      "FuelBuddy": "https://www.fuelbuddy.in",
+      "MyCarHelpMe": "https://www.mycarhelpme.com",
+      "Humsafar": "https://www.humsafarindia.com",
+      
+      // Train booking
+      "IRCTC": "https://www.irctc.co.in",
+      "Trainman": "https://www.trainman.in",
+      "ConfirmTkt": "https://www.confirmtkt.com",
+    };
+    
+    // Use the provided redirectUrl first, or fall back to our mapping
+    const url = provider.redirectUrl || providerUrls[provider.name];
+    
+    if (url) {
       toast.success(`Redirecting to ${provider.name}...`);
-      // window.open(provider.redirectUrl, "_blank");
+      window.open(url, "_blank");
     } else {
       toast.info(`Redirection to ${provider.name} would happen here`);
     }

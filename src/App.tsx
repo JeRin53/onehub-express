@@ -30,12 +30,15 @@ const queryClient = new QueryClient({
   },
 });
 
-// Scroll to top component - enhanced for smoother behavior
+// Enhanced scroll to top component that always scrolls immediately to top
 function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    // Smoother scroll to top with a slight delay to ensure page transition completes
+    // Immediately scroll to top first
+    window.scrollTo(0, 0);
+    
+    // Then do a smoother scroll after a slight delay to ensure all content is loaded
     const timeoutId = setTimeout(() => {
       window.scrollTo({
         top: 0,

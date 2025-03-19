@@ -1,6 +1,5 @@
-
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -29,11 +28,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, userProfile: authUserProfile } = useAuth();
   const [userProfile, setUserProfile] = useState<any>(null);
   const [searchHistory, setSearchHistory] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    console.log("Dashboard: user:", user ? "exists" : "null", "authUserProfile:", authUserProfile);
+  }, [user, authUserProfile]);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -45,8 +49,8 @@ const Dashboard = () => {
 
     try {
       setLoading(true);
+      console.log("Fetching user data for ID:", user.id);
 
-      // Fetch user profile
       const { data: profileData, error: profileError } = await supabase
         .from('user_profiles')
         .select('*')
@@ -54,12 +58,15 @@ const Dashboard = () => {
         .single();
 
       if (profileError) {
-        throw profileError;
+        console.error("Error fetching profile data:", profileError);
+        if (authUserProfile) {
+          setUserProfile(authUserProfile);
+        }
+      } else {
+        console.log("Profile data fetched:", profileData);
+        setUserProfile(profileData);
       }
 
-      setUserProfile(profileData);
-
-      // Fetch search history
       const { data: historyData, error: historyError } = await supabase
         .from('search_history')
         .select('*')
@@ -68,12 +75,11 @@ const Dashboard = () => {
         .limit(5);
 
       if (historyError) {
-        throw historyError;
+        console.error("Error fetching search history:", historyError);
+      } else {
+        setSearchHistory(historyData || []);
       }
 
-      setSearchHistory(historyData || []);
-
-      // Fetch bookings
       const { data: bookingsData, error: bookingsError } = await supabase
         .from('bookings')
         .select('*')
@@ -82,16 +88,40 @@ const Dashboard = () => {
         .limit(5);
 
       if (bookingsError) {
-        throw bookingsError;
+        console.error("Error fetching bookings:", bookingsError);
+      } else {
+        setBookings(bookingsData || []);
       }
-
-      setBookings(bookingsData || []);
     } catch (error) {
       console.error("Error fetching user data:", error);
       toast.error("Failed to load user data");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddMoney = () => {
+    toast.info("Add Money feature would open here");
+  };
+
+  const handleRedeemPoints = () => {
+    toast.info("Redeem Points feature would open here");
+  };
+
+  const handleViewNotifications = () => {
+    toast.info("Notifications would open here");
+  };
+
+  const handleViewAllServices = () => {
+    navigate('/services');
+  };
+
+  const handleViewAllActivity = () => {
+    toast.info("All activity history would open here");
+  };
+
+  const handleViewAllOffers = () => {
+    toast.info("All offers would open here");
   };
 
   const services = [
@@ -245,7 +275,9 @@ const Dashboard = () => {
       <main className="flex-grow bg-gray-50 pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-6">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold mb-2">Welcome, {userProfile?.first_name || "User"}!</h1>
+            <h1 className="text-3xl font-bold mb-2">
+              Welcome, {userProfile?.first_name || user?.email?.split('@')[0] || "User"}!
+            </h1>
             <p className="text-gray-600">Manage all your services from your personal dashboard</p>
           </div>
           
@@ -265,7 +297,6 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Quick Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
               <div className="flex items-center mb-4">
@@ -277,10 +308,13 @@ const Dashboard = () => {
               <p className="text-2xl font-bold mb-1">₹249.50</p>
               <p className="text-gray-500 text-sm">Available balance</p>
               <div className="mt-4">
-                <Link to="#" className="text-orange-500 text-sm font-medium flex items-center">
+                <button 
+                  onClick={handleAddMoney}
+                  className="text-orange-500 text-sm font-medium flex items-center"
+                >
                   Add Money
                   <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
+                </button>
               </div>
             </div>
             
@@ -294,10 +328,13 @@ const Dashboard = () => {
               <p className="text-2xl font-bold mb-1">750 points</p>
               <p className="text-gray-500 text-sm">Current reward points</p>
               <div className="mt-4">
-                <Link to="#" className="text-violet-500 text-sm font-medium flex items-center">
+                <button 
+                  onClick={handleRedeemPoints}
+                  className="text-violet-500 text-sm font-medium flex items-center"
+                >
                   Redeem Points
                   <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
+                </button>
               </div>
             </div>
             
@@ -311,15 +348,17 @@ const Dashboard = () => {
               <p className="text-2xl font-bold mb-1">3 new</p>
               <p className="text-gray-500 text-sm">Unread notifications</p>
               <div className="mt-4">
-                <Link to="#" className="text-green-500 text-sm font-medium flex items-center">
+                <button 
+                  onClick={handleViewNotifications}
+                  className="text-green-500 text-sm font-medium flex items-center"
+                >
                   View All
                   <ArrowRight className="ml-1 h-4 w-4" />
-                </Link>
+                </button>
               </div>
             </div>
           </div>
           
-          {/* AI Chat Assistant */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold flex items-center">
@@ -348,14 +387,16 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Services */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold">Services</h2>
-              <Link to="#" className="text-orange-500 font-medium flex items-center">
+              <button 
+                onClick={handleViewAllServices}
+                className="text-orange-500 font-medium flex items-center"
+              >
                 View All
                 <ArrowRight className="ml-1 h-4 w-4" />
-              </Link>
+              </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -372,7 +413,6 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Personalized Recommendations */}
           <div className="mb-12">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold flex items-center">
@@ -399,16 +439,18 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Recent Bookings & Offers */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2">
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold">Recent Activity</h2>
-                  <Link to="#" className="text-orange-500 text-sm font-medium flex items-center">
+                  <button 
+                    onClick={handleViewAllActivity}
+                    className="text-orange-500 text-sm font-medium flex items-center"
+                  >
                     View All
                     <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
+                  </button>
                 </div>
                 
                 <div className="space-y-4">
@@ -433,7 +475,6 @@ const Dashboard = () => {
                     </div>
                   ))}
                   
-                  {/* Recent searches section */}
                   <h3 className="font-medium mt-6 mb-3">Recent Searches</h3>
                   {searchHistory.length > 0 ? (
                     searchHistory.slice(0, 3).map((search, index) => (
@@ -463,10 +504,13 @@ const Dashboard = () => {
               <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 h-full">
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold">Special Offers</h2>
-                  <Link to="#" className="text-orange-500 text-sm font-medium flex items-center">
+                  <button 
+                    onClick={handleViewAllOffers}
+                    className="text-orange-500 text-sm font-medium flex items-center"
+                  >
                     View All
                     <ArrowRight className="ml-1 h-4 w-4" />
-                  </Link>
+                  </button>
                 </div>
                 
                 <div className="space-y-4">

@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -9,6 +9,11 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
+  
+  // Add console logs to help debug the loading state
+  useEffect(() => {
+    console.log("ProtectedRoute: loading:", loading, "user:", user ? "exists" : "null");
+  }, [loading, user]);
   
   if (loading) {
     return (

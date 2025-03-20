@@ -80,10 +80,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
+    const initAuth = async () => {
       try {
         setLoading(true);
+        
+        // Set up auth listener first (before checking the session)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          async (_event, newSession) => {
+            console.log("Auth state changed:", _event, newSession ? "session exists" : "no session");
+            setSession(newSession);
+            setUser(newSession?.user ?? null);
+            
+            if (newSession?.user) {
+              await fetchUserProfile(newSession.user.id);
+            } else {
+              setUserProfile(null);
+            }
+            
+            setLoading(false);
+          }
+        );
+        
+        // Get initial session after setting up the listener
         console.log("Getting initial auth session");
         const { data } = await supabase.auth.getSession();
         
@@ -94,35 +112,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.session?.user) {
           await fetchUserProfile(data.session.user.id);
         }
+        
+        setLoading(false);
+        
+        return () => {
+          subscription.unsubscribe();
+        };
       } catch (error) {
         console.error("Error getting initial session:", error);
-      } finally {
         setLoading(false);
       }
     };
 
-    getInitialSession();
-
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, newSession) => {
-        console.log("Auth state changed:", _event, newSession ? "session exists" : "no session");
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        
-        if (newSession?.user) {
-          await fetchUserProfile(newSession.user.id);
-        } else {
-          setUserProfile(null);
-        }
-        
-        setLoading(false);
-      }
-    );
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    initAuth();
   }, []);
 
   const signOut = async () => {

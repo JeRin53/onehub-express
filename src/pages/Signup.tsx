@@ -70,6 +70,9 @@ const Signup = () => {
       
       console.log("Signup successful:", data);
       toast.success("Account created successfully! Please check your email to verify your account.");
+      
+      // Redirect to login instead of dashboard after signup
+      // This ensures the user verifies their email if verification is enabled
       navigate("/login");
     } catch (error: any) {
       console.error("Signup error:", error.message);

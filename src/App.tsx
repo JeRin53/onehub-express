@@ -74,7 +74,6 @@ const App = () => (
               </ProtectedRoute>
             } />
             
-            {/* Update service routes to add console logging for debugging */}
             <Route path="/services/food-delivery" element={
               <ProtectedRoute>
                 <FoodDelivery />

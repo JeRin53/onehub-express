@@ -19,7 +19,6 @@ const HeroSection = () => {
     };
   }, []);
 
-  // Updated to navigate to the services page instead of using hash links
   const handleExploreServices = () => {
     navigate('/services');
   };

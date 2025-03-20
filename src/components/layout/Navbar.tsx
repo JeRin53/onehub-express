@@ -84,11 +84,10 @@ const Navbar = () => {
     }
   };
 
-  // Updated navLinks to go to actual pages instead of hash links
   const navLinks = [
     { name: "Home", path: "/" },
-    { name: "Services", path: "/services" },
-    { name: "About", path: "/about" },
+    { name: "Services", path: "/#services" },
+    { name: "About", path: "/#about" },
   ];
 
   const serviceLinks = [

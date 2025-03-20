@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
-import { toast } from "sonner";
 
 interface UserProfile {
   first_name?: string;
@@ -28,10 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Function to fetch user profile data - enhanced with better error handling
+  // Function to fetch user profile data
   const fetchUserProfile = async (userId: string) => {
     try {
-      console.log("Fetching profile for user ID:", userId);
       // Try to get from profiles table if it exists
       const { data, error } = await supabase
         .from('user_profiles')
@@ -39,15 +37,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('id', userId)
         .single();
 
-      if (error) {
-        console.error("Error fetching user profile from database:", error);
-        
-        // If profile couldn't be fetched from database, try auth metadata
+      if (error && error.code !== 'PGRST116') {
+        console.error("Error fetching user profile:", error);
+        return;
+      }
+
+      if (data) {
+        setUserProfile(data);
+      } else {
+        // If no profile found, use metadata from auth
         const { data: userData } = await supabase.auth.getUser();
-        console.log("Auth user data:", userData);
-        
         if (userData?.user?.user_metadata) {
-          console.log("Setting profile from auth metadata:", userData.user.user_metadata);
           setUserProfile({
             first_name: userData.user.user_metadata.first_name,
             last_name: userData.user.user_metadata.last_name,
@@ -56,15 +56,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           });
         } else {
           // Default to email if no other name information is available
-          console.log("Using email for profile display name:", userData?.user?.email);
           setUserProfile({
             display_name: userData?.user?.email?.split('@')[0],
-            first_name: userData?.user?.email?.split('@')[0],
           });
         }
-      } else {
-        console.log("Profile found in database:", data);
-        setUserProfile(data);
       }
     } catch (error) {
       console.error("Error in fetchUserProfile:", error);
@@ -79,62 +74,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    const initAuth = async () => {
+    // Get initial session
+    const getInitialSession = async () => {
       try {
-        setLoading(true);
-        
-        // Set up auth listener first (before checking the session)
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (_event, newSession) => {
-            console.log("Auth state changed:", _event, newSession ? "session exists" : "no session");
-            setSession(newSession);
-            setUser(newSession?.user ?? null);
-            
-            if (newSession?.user) {
-              await fetchUserProfile(newSession.user.id);
-            } else {
-              setUserProfile(null);
-            }
-            
-            setLoading(false);
-          }
-        );
-        
-        // Get initial session after setting up the listener
-        console.log("Getting initial auth session");
         const { data } = await supabase.auth.getSession();
-        
-        console.log("Initial session data:", data.session ? "exists" : "null");
         setSession(data.session);
         setUser(data.session?.user ?? null);
         
         if (data.session?.user) {
           await fetchUserProfile(data.session.user.id);
         }
-        
-        setLoading(false);
-        
-        return () => {
-          subscription.unsubscribe();
-        };
       } catch (error) {
         console.error("Error getting initial session:", error);
+      } finally {
         setLoading(false);
       }
     };
 
-    initAuth();
+    getInitialSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (_event, newSession) => {
+        setSession(newSession);
+        setUser(newSession?.user ?? null);
+        
+        if (newSession?.user) {
+          await fetchUserProfile(newSession.user.id);
+        } else {
+          setUserProfile(null);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
     try {
-      console.log("Signing out user");
       await supabase.auth.signOut();
       setUserProfile(null);
-      toast.success("Signed out successfully");
     } catch (error) {
       console.error("Error signing out:", error);
-      toast.error("Error signing out");
     }
   };
 

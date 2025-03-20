@@ -24,14 +24,9 @@ const Signup = () => {
   useEffect(() => {
     // Check if user is already logged in
     const checkSession = async () => {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data.session) {
-          console.log("User already logged in, redirecting to dashboard");
-          navigate("/dashboard");
-        }
-      } catch (error) {
-        console.error("Error checking session:", error);
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate("/dashboard");
       }
     };
     
@@ -51,9 +46,7 @@ const Signup = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setLoading(true);
-      console.log("Attempting signup with email:", values.email);
-      
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
@@ -68,14 +61,9 @@ const Signup = () => {
         throw error;
       }
       
-      console.log("Signup successful:", data);
       toast.success("Account created successfully! Please check your email to verify your account.");
-      
-      // Redirect to login instead of dashboard after signup
-      // This ensures the user verifies their email if verification is enabled
       navigate("/login");
     } catch (error: any) {
-      console.error("Signup error:", error.message);
       toast.error(error.message || "An error occurred during signup");
     } finally {
       setLoading(false);

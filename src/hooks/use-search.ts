@@ -101,9 +101,14 @@ export const useSearch = () => {
       let detectedService = data?.serviceCategory || serviceType;
 
       if (detectedService === "general") {
-        // If no category detected, try to infer from the query
+        // If no category detected, try to infer from the query or extracted data
         const query_lower = query.toLowerCase();
-        if (/food|restaurant|meal|eat|dinner|lunch|breakfast|biryani|pizza/i.test(query_lower)) {
+        const extractedItem = data?.extracted?.item?.toLowerCase() || "";
+        
+        if (
+          /food|restaurant|meal|eat|dinner|lunch|breakfast|biryani|pizza/i.test(query_lower) ||
+          /biryani|pizza|burger|curry|dosa|food/i.test(extractedItem)
+        ) {
           detectedService = "food-delivery";
         } else if (/cab|taxi|ride|car|uber|lift/i.test(query_lower)) {
           detectedService = "cab-booking";

@@ -1,4 +1,3 @@
-
 // Handler functions for the Gemini search edge function
 
 import { SearchRequestData, SearchResponse, LocationData, SearchResult } from "./types.ts";
@@ -28,9 +27,13 @@ export async function processGeminiSearch(
       }
     }
 
+    // Extract food items, cuisine types, and priorities
+    const foodItems = query.match(/pizza|burger|biryani|pasta|chinese|indian|italian|thai|sushi|sandwich|salad|cake|ice cream|coffee/gi);
+    const priorities = query.match(/cheap|affordable|quick|fast|best|top|nearest|healthy|spicy|vegetarian|vegan/gi);
+    
     // Create the prompt for Gemini
     const prompt = `
-You are an AI assistant for a food delivery platform. The user is searching for: "${query}".
+You are an AI assistant for a food delivery platform in India. The user is searching for: "${query}".
 ${locationText ? locationText + "." : ""}
 
 Based on this search query, generate a response in the following JSON format:
@@ -50,7 +53,12 @@ Based on this search query, generate a response in the following JSON format:
   "suggestions": [
     // 3-5 related search queries the user might be interested in
   ],
-  "summary": "A one-sentence summary of the search results"
+  "summary": "A one-sentence summary of the search results",
+  "extracted": {
+    "item": "${foodItems ? foodItems[0] : ""}",
+    "priorities": ${JSON.stringify(priorities || [])},
+    "cuisine": "${query.match(/chinese|indian|italian|thai|mexican|continental/i)?.[0] || ""}"
+  }
 }
 
 Keep the response strictly in this JSON format without any additional text. Make the results realistic and appropriate for ${serviceType} delivery services in India, with reasonable prices, ratings, and distances. For the image field, provide detailed descriptions that could be used to generate an image of the food item or restaurant.
@@ -129,7 +137,8 @@ Keep the response strictly in this JSON format without any additional text. Make
     return {
       results: resultsWithImages,
       suggestions: parsedResponse.suggestions || [],
-      summary: parsedResponse.summary || "Here are some food delivery options based on your search."
+      summary: parsedResponse.summary || "Here are some food delivery options based on your search.",
+      extracted: parsedResponse.extracted || null
     };
   } catch (error) {
     console.error("Error processing search:", error);
@@ -141,20 +150,22 @@ Keep the response strictly in this JSON format without any additional text. Make
 
 async function generateFoodImage(description: string): Promise<string> {
   try {
-    // Try to generate an image with Gemini
-    // Note: This is using the image generation functionality
-    // In a real implementation, we would use a proper image generation service
+    // For now, we're using placeholder images
+    // In a production environment, you would integrate with an image generation API
     
-    // For now, we're returning placeholder images
-    const placeholders = [
-      "https://via.placeholder.com/300x200?text=Delicious+Food",
-      "https://via.placeholder.com/300x200?text=Restaurant",
-      "https://via.placeholder.com/300x200?text=Meal",
-      "https://via.placeholder.com/300x200?text=Cuisine",
-      "https://via.placeholder.com/300x200?text=Tasty"
+    const foodImages = [
+      "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=480&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=480&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=480&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?q=80&w=480&auto=format&fit=crop",
+      "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?q=80&w=480&auto=format&fit=crop"
     ];
     
-    return placeholders[Math.floor(Math.random() * placeholders.length)];
+    // Deterministic selection based on description to keep results consistent
+    const hash = description.split('').reduce((a, b) => a + b.charCodeAt(0), 0);
+    const index = hash % foodImages.length;
+    
+    return foodImages[index];
     
     // In a production scenario, you would call an image generation API here
     // const response = await fetch("IMAGE_GENERATION_API_URL", {
@@ -171,44 +182,51 @@ async function generateFoodImage(description: string): Promise<string> {
 }
 
 function generateFallbackResults(query: string, serviceType: string): SearchResponse {
+  const foodType = query.match(/pizza|burger|biryani|pasta|chinese|indian|italian|thai|sushi|sandwich|salad|cake|ice cream|coffee/i)?.[0] || "food";
+  
   return {
     results: [
       {
         title: "Spice Junction",
-        description: `Popular restaurant for ${query}`,
+        description: `Popular restaurant for ${foodType}`,
         provider: "Swiggy",
         price: "₹200 - ₹400",
         rating: "4.3",
         distance: "2.5 km",
-        image: "https://via.placeholder.com/300x200?text=Spice+Junction"
+        image: "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?q=80&w=480&auto=format&fit=crop"
       },
       {
         title: "Food Paradise",
-        description: `Best selling ${query} in town`,
+        description: `Best selling ${foodType} in town`,
         provider: "Zomato",
         price: "₹150 - ₹350",
         rating: "4.1",
         distance: "3.2 km",
-        image: "https://via.placeholder.com/300x200?text=Food+Paradise"
+        image: "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?q=80&w=480&auto=format&fit=crop"
       },
       {
         title: "Delicious Corner",
-        description: `Authentic ${query} with great taste`,
+        description: `Authentic ${foodType} with great taste`,
         provider: "Swiggy",
         price: "₹250 - ₹450",
         rating: "4.4",
         distance: "1.8 km",
-        image: "https://via.placeholder.com/300x200?text=Delicious+Corner"
+        image: "https://images.unsplash.com/photo-1565299585323-38d6b0865b47?q=80&w=480&auto=format&fit=crop"
       }
     ],
     suggestions: [
-      `Best ${query} nearby`,
-      `Cheap ${query} delivery`,
-      `${query} with free delivery`,
-      `Top rated ${query} restaurants`,
-      `${query} under ₹300`
+      `Best ${foodType} nearby`,
+      `Cheap ${foodType} delivery`,
+      `${foodType} with free delivery`,
+      `Top rated ${foodType} restaurants`,
+      `${foodType} under ₹300`
     ],
     summary: `Here are some results for "${query}" you might like to try.`,
+    extracted: {
+      item: foodType,
+      priorities: [],
+      cuisine: ""
+    },
     error: "Could not process with Gemini API, showing fallback results"
   };
 }

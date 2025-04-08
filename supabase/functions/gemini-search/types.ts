@@ -23,9 +23,16 @@ export interface SearchResult {
   image: string;
 }
 
+export interface ExtractedData {
+  item?: string;
+  priorities?: string[];
+  cuisine?: string;
+}
+
 export interface SearchResponse {
   results: SearchResult[];
   suggestions: string[];
   summary: string;
+  extracted?: ExtractedData;
   error?: string;
 }

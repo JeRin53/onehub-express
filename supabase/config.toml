@@ -3,3 +3,6 @@ project_id = "xvjhktrubytwvbyukfln"
 
 [functions.gemini-search]
 verify_jwt = false
+
+[functions.gemini-recommendations]
+verify_jwt = false

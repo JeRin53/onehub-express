@@ -26,7 +26,7 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({
       throw new Error("You must be logged in to get recommendations");
     }
 
-    const { data, error } = await supabase.functions.invoke("openai-recommendations", {
+    const { data, error } = await supabase.functions.invoke("gemini-recommendations", {
       body: { recommendationType: type },
     });
 
@@ -120,6 +120,13 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({
                 <h3 className="font-medium mb-1">{item.name || item.title}</h3>
                 <p className="text-sm text-gray-600 mb-2">{item.description}</p>
                 
+                {item.cuisine && (
+                  <div className="flex items-center text-sm">
+                    <span className="font-medium text-gray-700 mr-1">Cuisine:</span>
+                    <span>{item.cuisine}</span>
+                  </div>
+                )}
+                
                 {item.price && (
                   <div className="flex items-center text-sm">
                     <span className="font-medium text-gray-700 mr-1">Price:</span>
@@ -130,7 +137,7 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({
                 {item.rating && (
                   <div className="flex items-center text-sm">
                     <span className="font-medium text-gray-700 mr-1">Rating:</span>
-                    <span>{item.rating}</span>
+                    <span>{typeof item.rating === 'number' ? `${item.rating}/5` : item.rating}</span>
                   </div>
                 )}
                 
@@ -138,6 +145,20 @@ const AIRecommendations: React.FC<AIRecommendationsProps> = ({
                   <div className="flex items-center text-sm">
                     <span className="font-medium text-gray-700 mr-1">Location:</span>
                     <span>{item.location}</span>
+                  </div>
+                )}
+                
+                {item.amenities && (
+                  <div className="flex items-center text-sm">
+                    <span className="font-medium text-gray-700 mr-1">Amenities:</span>
+                    <span>{item.amenities}</span>
+                  </div>
+                )}
+                
+                {item.type && !item.cuisine && (
+                  <div className="flex items-center text-sm">
+                    <span className="font-medium text-gray-700 mr-1">Type:</span>
+                    <span>{item.type}</span>
                   </div>
                 )}
               </div>

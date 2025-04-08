@@ -97,26 +97,35 @@ export const useSearch = () => {
 
       toast.success("Search completed successfully");
 
-      // Detect service category from data or query
+      // Detect service category from data, extracted items, or query
       let detectedService = data?.serviceCategory || serviceType;
 
+      // If we have extracted food item data, make sure to use it
+      const extractedItem = data?.extracted?.item?.toLowerCase() || "";
+      const query_lower = query.toLowerCase();
+      
+      // Check for food-related terms
+      const foodTerms = /food|restaurant|meal|eat|dinner|lunch|breakfast|biryani|pizza|burger|curry|dosa/i;
+      const cabTerms = /cab|taxi|ride|car|uber|lift/i;
+      const hotelTerms = /hotel|stay|room|accommodation|lodge/i;
+      const fuelTerms = /fuel|gas|petrol|diesel/i;
+      const trainTerms = /train|rail|travel|ticket/i;
+      
       if (detectedService === "general") {
-        // If no category detected, try to infer from the query or extracted data
-        const query_lower = query.toLowerCase();
-        const extractedItem = data?.extracted?.item?.toLowerCase() || "";
+        // If no specific category detected or if we're starting with a generic search,
+        // try to infer from the extracted item, query, or results
         
-        if (
-          /food|restaurant|meal|eat|dinner|lunch|breakfast|biryani|pizza/i.test(query_lower) ||
-          /biryani|pizza|burger|curry|dosa|food/i.test(extractedItem)
-        ) {
+        if (foodTerms.test(extractedItem) || foodTerms.test(query_lower) || 
+            (data?.results && data.results.some((r: any) => 
+              r.provider === "Swiggy" || r.provider === "Zomato"))) {
           detectedService = "food-delivery";
-        } else if (/cab|taxi|ride|car|uber|lift/i.test(query_lower)) {
+        } else if (cabTerms.test(query_lower)) {
           detectedService = "cab-booking";
-        } else if (/hotel|stay|room|accommodation|lodge/i.test(query_lower)) {
+        } else if (hotelTerms.test(query_lower)) {
           detectedService = "hotel-reservation";
-        } else if (/fuel|gas|petrol|diesel/i.test(query_lower)) {
+        } else if (fuelTerms.test(query_lower)) {
           detectedService = "fuel-delivery";
-        } else if (/train|rail|travel|ticket/i.test(query_lower)) {
+        } else if (trainTerms.test(query_lower)) {
           detectedService = "train-booking";
         }
       }

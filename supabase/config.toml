@@ -1,1 +1,5 @@
+
 project_id = "xvjhktrubytwvbyukfln"
+
+[functions.gemini-search]
+verify_jwt = false

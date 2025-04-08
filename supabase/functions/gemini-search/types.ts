@@ -2,15 +2,15 @@
 // Type definitions for the Gemini search function
 
 export interface LocationData {
-  latitude: number;
-  longitude: number;
-  accuracy?: number;
+  latitude?: number;
+  longitude?: number;
+  address?: string;
 }
 
 export interface SearchRequestData {
   query: string;
   serviceType: string;
-  location: LocationData | null;
+  location: LocationData | string | null;
 }
 
 export interface SearchResult {
@@ -19,8 +19,8 @@ export interface SearchResult {
   provider: string;
   price: string;
   rating: string;
-  eta: string;
-  image?: string;
+  distance: string;
+  image: string;
 }
 
 export interface SearchResponse {
@@ -28,10 +28,4 @@ export interface SearchResponse {
   suggestions: string[];
   summary: string;
   error?: string;
-  extracted?: {
-    item?: string;
-    priorities?: string[];
-    cuisine?: string;
-  };
-  serviceCategory?: string;
 }

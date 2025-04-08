@@ -53,7 +53,8 @@ serve(async (req) => {
             provider: "System",
             price: "N/A",
             rating: "N/A",
-            eta: "N/A"
+            distance: "N/A",
+            image: "https://via.placeholder.com/300x200?text=Error"
           }
         ],
         suggestions: ["Pizza delivery", "Vegetarian restaurants", "Cheap food near me"],
